@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_settings">Настройки</string>
+    <string name="pause">Пауза</string>
+    <string name="play">Играть</string>
+    <string name="next">След</string>
+    <string name="like_track">Нрав</string>
+    <string name="dislike_track">Ненрав</string>
+    <string name="nastroenie">Настроение</string>
+    <string name="discover">Треки</string>
+    <string name="language">Язык</string>
+    <string name="update">Обновить</string>
+    <string name="loading">Загрузка…</string>
+    <string name="like">Нрав</string>
+    <string name="dislike">Ненрав</string>
+</resources>
