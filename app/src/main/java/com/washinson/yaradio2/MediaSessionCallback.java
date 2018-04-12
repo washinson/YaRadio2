@@ -38,7 +38,11 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
         super.onPause();
         service.pause();
         service.refreshNotificationAndForegroundStatus(PlaybackStateCompat.STATE_PAUSED);
-        mContext.unregisterReceiver(becomingNoisyReceiver);
+        try{
+            mContext.unregisterReceiver(becomingNoisyReceiver);
+        } catch (IllegalArgumentException e){
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -53,9 +57,14 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
                 service.queue.add(service.nextTrack);
         }
         service.prepare();
-        mContext.registerReceiver(
-                becomingNoisyReceiver,
-                new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY));
+        try{
+            mContext.unregisterReceiver(becomingNoisyReceiver);
+        } catch (IllegalArgumentException e){
+            e.printStackTrace();
+        } finally {
+            mContext.registerReceiver(
+                    becomingNoisyReceiver, new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY));
+        }
         int audioFocusResult = audioManager.requestAudioFocus(
                 audioFocusChangeListener,
                 AudioManager.STREAM_MUSIC,

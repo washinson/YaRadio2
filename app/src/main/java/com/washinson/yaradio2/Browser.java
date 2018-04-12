@@ -8,8 +8,10 @@ import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.webkit.CookieManager;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
@@ -86,6 +88,21 @@ public class Browser extends AppCompatActivity {
             super.onPageStarted(view, url, favicon);
             if(CookieManager.getInstance().getCookie("https://radio.yandex.ru") != null &&
                     CookieManager.getInstance().getCookie("https://radio.yandex.ru").contains("yandex_login")) {
+
+                long eventtime = SystemClock.uptimeMillis();
+                Intent downIntent = new Intent(Intent.ACTION_MEDIA_BUTTON, null);
+                KeyEvent downEvent = new KeyEvent(eventtime, eventtime,
+                        KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_STOP, 0);
+                downIntent.putExtra(Intent.EXTRA_KEY_EVENT, downEvent);
+                sendOrderedBroadcast(downIntent, null);
+
+                Intent upIntent = new Intent(Intent.ACTION_MEDIA_BUTTON, null);
+                KeyEvent upEvent = new KeyEvent(eventtime, eventtime,
+                        KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_STOP, 0);
+                upIntent.putExtra(Intent.EXTRA_KEY_EVENT, upEvent);
+                sendOrderedBroadcast(upIntent, null);
+
+                Manager.init(Browser.this);
                 getSharedPreferences(MainActivity.TAG, Context.MODE_PRIVATE).edit().remove("library.jsx").apply();
                 updateCookie();
                 webView.destroy();
