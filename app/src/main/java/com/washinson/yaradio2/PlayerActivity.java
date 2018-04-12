@@ -57,13 +57,14 @@ public class PlayerActivity extends AppCompatActivity {
                             }
                         }
                 );
-                updateScreen(mediaController.getMetadata());
 
                 if(playerService.getTrack() == null ||
                         !playerService.getTrack().getStation().name.equals(PlayerService.subtype.name)){
                     playerService.track = null;
                     playerService.queue.clear();
                     mediaController.getTransportControls().play();
+                } else {
+                    updateScreen(mediaController.getMetadata());
                 }
             }
             catch (RemoteException e) {
