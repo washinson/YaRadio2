@@ -162,6 +162,13 @@ public class PlayerActivity extends AppCompatActivity {
         unregisterReceiver(stopped);
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if(mediaController != null && mediaController.getMetadata() != null)
+            updateScreen(mediaController.getMetadata());
+    }
+
     void updateScreen(MediaMetadataCompat metadataCompat){
         if(metadataCompat == null || playerService == null || playerService.getTrack() == null)
             return;

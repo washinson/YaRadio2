@@ -19,6 +19,7 @@ import android.os.PersistableBundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.BottomNavigationView;
 import android.support.design.widget.NavigationView;
+import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.GravityCompat;
@@ -156,8 +157,10 @@ public class MainActivity extends AppCompatActivity
         try {
             if(hasInternetConnection())
                 generateStations();
-            else
-                Toast.makeText(this, "No internet", Toast.LENGTH_SHORT).show();
+            else {
+                Snackbar.make(findViewById(android.R.id.content), R.string.no_internet, Snackbar.LENGTH_SHORT).show();
+                //Toast.makeText(this, "No internet", Toast.LENGTH_SHORT).show();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -213,7 +216,12 @@ public class MainActivity extends AppCompatActivity
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            Toast.makeText(this, "Ha-ha! Fake button!", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(this, "Ha-ha! Fake button!", Toast.LENGTH_SHORT).show();
+            FragmentManager fragmentManager = getFragmentManager();
+            FragmentTransaction fragmentTransaction = fragmentManager
+                    .beginTransaction();
+            if(fragmentManager.findFragmentByTag("setting") == null)
+                fragmentTransaction.replace(R.id.list_targets, new SettingFragment(), "setting").addToBackStack(null).commit();
             return true;
         }
 

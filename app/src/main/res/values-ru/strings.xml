@@ -13,4 +13,9 @@
     <string name="loading">Загрузка…</string>
     <string name="like">Нрав</string>
     <string name="dislike">Ненрав</string>
+    <string name="no_internet">Нет сети</string>
+    <string name="traffic_save">Экономия трафика</string>
+    <string name="_0_no_economy_192_bitrate">0 - без экономии (192 bitrate)</string>
+    <string name="_1_medium_economy_128_bitrate">1 - средняя экономия (128 bitrate)</string>
+    <string name="_2_high_economy_64_bitrate">2 - высокая экономия (64 bitrate)</string>
 </resources>

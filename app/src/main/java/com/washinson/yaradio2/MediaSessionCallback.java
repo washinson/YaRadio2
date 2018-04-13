@@ -84,23 +84,20 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
 
         try{
             mContext.unregisterReceiver(like);
-        } catch (IllegalArgumentException e){
-            e.printStackTrace();
-        } finally {
+        } catch (IllegalArgumentException ignored){ }
+        finally {
             mContext.registerReceiver(like, new IntentFilter("like"));
         }
         try{
             mContext.unregisterReceiver(dislike);
-        } catch (IllegalArgumentException e){
-            e.printStackTrace();
-        } finally {
+        } catch (IllegalArgumentException ignored){ }
+        finally {
             mContext.registerReceiver(dislike, new IntentFilter("dislike"));
         }
         try{
             mContext.unregisterReceiver(becomingNoisyReceiver);
-        } catch (IllegalArgumentException e){
-            e.printStackTrace();
-        } finally {
+        } catch (IllegalArgumentException ignored){ }
+        finally {
             mContext.registerReceiver(
                     becomingNoisyReceiver, new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY));
         }

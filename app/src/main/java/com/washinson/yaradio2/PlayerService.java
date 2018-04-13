@@ -6,6 +6,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
@@ -27,6 +28,7 @@ import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Request;
 import com.squareup.picasso.Target;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -37,6 +39,10 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 
 public class PlayerService extends Service {
     private int NOTIFICATION_ID = 121;
@@ -59,6 +65,8 @@ public class PlayerService extends Service {
     private MediaMetadataCompat.Builder metadataBuilder = new MediaMetadataCompat.Builder();
     private AudioManager audioManager;
     private Browser.Auth auth;
+
+    SharedPreferences sharedPreferences;
 
 
     void pause(){
@@ -111,13 +119,23 @@ public class PlayerService extends Service {
         Log.i(TAG,"Current track: " + track.toString());
         Log.i(TAG,"----");
 
-        String path = "https://radio.yandex.ru/api/v2.1/handlers/track/"
-                + track.getId() + ":" + track.getAlbumId() + "/radio-web-"
-                + track.getStation().targetName + "-" + track.getStation().name
-                + "-direct/download/m?hq=0&external-domain=radio.yandex.ru&overembed=no";
+        //String path = "https://radio.yandex.ru/api/v2.1/handlers/track/"
+        //        + track.getId() + ":" + track.getAlbumId() + "/radio-web-"
+        //        + track.getStation().targetName + "-" + track.getStation().name
+        //        + "-direct/download/m?hq=0&external-domain=radio.yandex.ru&overembed=no";
+
+        String path = "https://api.music.yandex.net/tracks/" + track.getId() + "/download-info";
+
         String json = Manager.getInstance().get(path, null, track);
+
         JSONObject jsonObject = new JSONObject(json);
-        String src = jsonObject.getString("src") + "&format=json";
+
+        //String src = jsonObject.getString("src") + "&format=json";
+        QualityInfo qualityInfo = QualityInfo.fromJSON(jsonObject);
+
+        int quality = sharedPreferences.getInt("quality", SettingFragment.defVal);
+        String src = qualityInfo.byQuality(quality) + "&format=json";
+
         okhttp3.Request.Builder builder = new okhttp3.Request.Builder().get().url(src);
         builder.addHeader("Host", "storage.mds.yandex.net");
         Manager.getInstance().setDefaultHeaders(builder);
@@ -222,6 +240,8 @@ public class PlayerService extends Service {
 
         auth = new Browser.Auth();
         auth.Init();
+
+        sharedPreferences = getSharedPreferences("traffic", Context.MODE_PRIVATE);
 
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 
@@ -379,8 +399,7 @@ public class PlayerService extends Service {
 
         builder.setStyle(new android.support.v4.media.app.NotificationCompat.MediaStyle()
                 // В компактном варианте показывать Action с данным порядковым номером.
-                // В нашем случае это play/pause.
-                .setShowActionsInCompactView(1)
+                .setShowActionsInCompactView(0, 1, 3)
                 // Отображать крестик в углу уведомления для его закрытия.
                 // Это связано с тем, что для API < 21 из-за ошибки во фреймворке
                 // пользователь не мог смахнуть уведомление foreground-сервиса
@@ -424,6 +443,25 @@ public class PlayerService extends Service {
 
     public MediaSessionCompat getMediaSession() {
         return mediaSession;
+    }
+
+    private static class QualityInfo {
+        HashMap<Integer, JSONObject> qualities = new HashMap<>();
+
+        public static QualityInfo fromJSON(JSONObject src) throws JSONException {
+            QualityInfo info = new QualityInfo();
+            JSONArray jsonArray = src.getJSONArray("result");
+            for(int i = 0; i < jsonArray.length(); i++){
+                JSONObject temp = jsonArray.getJSONObject(i);
+
+                info.qualities.put(temp.getInt("bitrateInKbps"), temp);
+            }
+            return info;
+        }
+
+        public String byQuality(int quality) throws JSONException {
+            return qualities.get(quality).getString("downloadInfoUrl");
+        }
     }
 
     private static class DownloadInfo {

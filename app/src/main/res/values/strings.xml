@@ -18,4 +18,9 @@
     <string name="like">Like</string>
     <string name="dislike">Dislike</string>
     <string name="p_r" translatable="false">P/R</string>
+    <string name="no_internet">No internet</string>
+    <string name="traffic_save">Traffic economy</string>
+    <string name="_0_no_economy_192_bitrate">0 - no economy (192 bitrate)</string>
+    <string name="_1_medium_economy_128_bitrate">1 - medium economy (128 bitrate)</string>
+    <string name="_2_high_economy_64_bitrate">2 - high economy (64 bitrate)</string>
 </resources>
