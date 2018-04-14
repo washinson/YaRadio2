@@ -18,7 +18,10 @@ public class Track {
     private String batchId;
     private String artist;
     private String cover;
+    private long durationMs;
     private boolean liked, finished = false;
+
+    public long getDurationMs() { return durationMs; }
 
     public String getAlbum() { return album; }
 
@@ -47,6 +50,8 @@ public class Track {
             cover = track
                     .getString("coverUri");
             cover = "https://" + cover;
+
+            durationMs = track.getLong("durationMs");
 
             JSONArray artists = track.getJSONArray("artists");
             StringBuilder artistNameBuilder = new StringBuilder();

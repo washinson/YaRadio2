@@ -2,12 +2,15 @@ package com.washinson.yaradio2;
 
 import android.app.Activity;
 import android.app.ListFragment;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -53,7 +56,7 @@ public class Browser extends AppCompatActivity {
                 sign = authData.getString("csrf");
                 deviceId = authData.getString("device_id");
                 Cookie cookie = new Cookie.Builder().domain(HttpUrl.parse("https://radio.yandex.ru").topPrivateDomain())
-                        .name("device_id").value("\"" + deviceId + "\"").expiresAt(0).build();
+                        .name("device_id").value("\"" + deviceId + "\"").expiresAt(Long.MAX_VALUE).build();
                 ArrayList<Cookie> cookies = new ArrayList<>(); cookies.add(cookie);
                 Manager.getInstance().okHttpClient.cookieJar()
                         .saveFromResponse(HttpUrl.parse("https://radio.yandex.ru"), cookies);
@@ -88,6 +91,19 @@ public class Browser extends AppCompatActivity {
             super.onPageStarted(view, url, favicon);
             if(CookieManager.getInstance().getCookie("https://radio.yandex.ru") != null &&
                     CookieManager.getInstance().getCookie("https://radio.yandex.ru").contains("yandex_login")) {
+
+                bindService(new Intent(Browser.this, PlayerService.class), new ServiceConnection() {
+                    @Override
+                    public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+                        ((PlayerService.PlayerServiceBinder) iBinder).getService().mediaSessionCallback.onStop();
+                        unbindService(this);
+                    }
+
+                    @Override
+                    public void onServiceDisconnected(ComponentName componentName) {
+
+                    }
+                }, BIND_AUTO_CREATE);
 
                 long eventtime = SystemClock.uptimeMillis();
                 Intent downIntent = new Intent(Intent.ACTION_MEDIA_BUTTON, null);
@@ -128,6 +144,17 @@ public class Browser extends AppCompatActivity {
         }
         Manager.getInstance().okHttpClient.cookieJar()
                 .saveFromResponse(HttpUrl.parse("https://radio.yandex.ru"), cookieArrayList);
+    }
+
+    static public String getCookieParam(String param){
+        List<Cookie> list =
+                Manager.getInstance().okHttpClient.cookieJar().loadForRequest(HttpUrl.parse("https://radio.yandex.ru"));
+        if(list == null) return null;
+        for(Cookie cookie : list){
+            if(cookie.name().equals(param))
+                return cookie.value();
+        }
+        return null;
     }
 
     static public String getLogin() {

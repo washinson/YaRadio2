@@ -20,6 +20,12 @@ import java.util.zip.GZIPInputStream;
  */
 
 public class Utils {
+    static public String getPlayId(Track track){
+        // XDD
+        String id = Browser.getCookieParam("device_id").replaceAll("\"", "");
+        return id + ":" + track.getId() + ":" + String.valueOf(Math.random()).substring(2);
+    }
+
     static public String getCover(int sizeX, String cover){
         return cover.replace("%%", sizeX + "x" + sizeX);
     }
@@ -74,6 +80,21 @@ public class Utils {
 
         }
         return result.toString();
+    }
+
+    public static Station.Subtype makeSubtype(JSONObject object) throws JSONException {
+        object = object.getJSONObject("station");
+        JSONObject id = object.getJSONObject("id");
+
+        String target = id.getString("type");
+        String subtypeName = id.getString("tag");
+
+        String type = subtypeName;
+        if(object.has("parentId")){
+            type = object.getJSONObject("parentId").getString("tag");
+        }
+
+        return new Station.Subtype(subtypeName, type, target);
     }
 
     public static Station.Type makeType(JSONArray object, String target, String type) throws JSONException {

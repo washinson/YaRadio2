@@ -9,6 +9,7 @@ import android.webkit.CookieManager;
 import com.franmontiel.persistentcookiejar.PersistentCookieJar;
 import com.franmontiel.persistentcookiejar.cache.SetCookieCache;
 import com.franmontiel.persistentcookiejar.persistence.SharedPrefsCookiePersistor;
+import com.google.android.exoplayer2.extractor.Extractor;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -20,6 +21,8 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.CookiePolicy;
 import java.net.HttpURLConnection;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -39,6 +42,8 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
+import static android.content.ContentValues.TAG;
+
 /**
  * Created by User on 10.04.2018.
  */
@@ -50,6 +55,7 @@ class Manager {
     static final String unlike = "unlike";
     static final String trackFinished = "trackFinished";
     static final String skip = "skip";
+    static final String radioStarted = "radioStarted";
 
     OkHttpClient okHttpClient;
     CookieJar cookieJar;
@@ -77,6 +83,47 @@ class Manager {
         return "/" + track.getStation().targetName + "/" + track.getStation().name;
     }
 
+    public String historyFeedback(Track track, double duration, Browser.Auth auth, String word){
+        String path = "https://radio.yandex.ru/api/v2.1/handlers/track/none/history/feedback/retry";
+        JSONObject postBody = new JSONObject();
+        try {
+            setDefaultHistoryFeedbackBody(track, postBody, auth, duration, word);
+            return post(path, RequestBody.create(MediaType.parse("application/json"), postBody.toString())
+                    , null, "application/json", track);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    void setDefaultHistoryFeedbackBody(Track track, JSONObject postBody,
+                                       Browser.Auth auth, double duration, String feedback) throws JSONException {
+        postBody.put("external-domain", "radio.yandex.ru");
+        postBody.put("overembed", "no");
+        postBody.put("sign", auth.sign);
+        postBody.put("timestamp", new Date().getTime());
+
+        JSONObject jsonTrack = new JSONObject();
+        jsonTrack.put("album", Integer.valueOf(track.getAlbumId()));
+        jsonTrack.put("context", "radio");
+        jsonTrack.put("contextItem", track.station.targetName + ":" + track.station.name);
+        jsonTrack.put("duration", track.getDurationMs() / 1000.0);
+        jsonTrack.put("feedback", feedback);
+        jsonTrack.put("from", "radio-web-"
+                + track.station.targetName + "-" + track.station.name + "-direct");
+        jsonTrack.put("playId", Utils.getPlayId(track));
+        jsonTrack.put("played", duration);
+        jsonTrack.put("position", duration);
+        jsonTrack.put("trackId", track.getId());
+        jsonTrack.put("yaDisk", false);
+        jsonTrack.put("timestamp", new Date().getTime());
+
+        if(feedback.equals(trackStarted)) jsonTrack.put("sendReason", "start");
+        else jsonTrack.put("sendReason", "end");
+
+        postBody.put("data", new JSONArray().put(jsonTrack));
+    }
+
     public ArrayDeque<Track> getTracks(Track track, Track nextTrack, Station.Subtype subtype) throws Exception {
         String url = "https://radio.yandex.ru/api/v2.1/handlers/radio" + orAndVal(track) + "/tracks?queue=";
         if(track.getTitle() != null) {
@@ -85,6 +132,8 @@ class Manager {
                 url = url + "," + nextTrack.getId() + ":" + nextTrack.getAlbumId();
             }
         }
+        Log.d(PlayerService.TAG, "getTracks: " + url);
+        Log.d(PlayerService.TAG, "Time: " + System.currentTimeMillis() / 1000);
         String response = Manager.getInstance().get(
                 url, null, track);
         JSONObject tracks = new JSONObject(response);
@@ -99,27 +148,10 @@ class Manager {
         return trackList;
     }
 
-    /*public String updateInfo(String moodEnergy, String diversity, String language, Track track, Browser.Auth auth) throws Exception {
-        Log.d("Ya", "Update station : " + moodEnergy + " " + diversity + " " +  language);
-        String path = "https://radio.yandex.ru/api/v2.1/handlers/radio" + orAndVal(track) + "/settings";
-        JSONObject postData = null;
-        try {
-            postData = new JSONObject();
-            postData.put("language", language);
-            postData.put("moodEnergy", moodEnergy);
-            postData.put("diversity", diversity);
-            postData.put("sign", auth.sign);
-            postData.put("external-domain", "radio.yandex.ru");
-            postData.put("overembed", "no");
-        } catch(Exception e){
-            e.printStackTrace();
-        }
-
-        return post(path, postData, null, "application/x-www-form-urlencoded", track);
-    }*/
-
-    public String updateInfo(String moodEnergy, String diversity, String language, Track track, Browser.Auth auth) throws Exception {
-        Log.d("Ya", "Update station : " + moodEnergy + " " + diversity + " " +  language);
+    public String updateInfo(String moodEnergy, String diversity, String language, Track track, Browser.Auth auth)
+            throws Exception {
+        Log.d(PlayerService.TAG, "Update station : " + moodEnergy + " " + diversity + " " +  language);
+        Log.d(PlayerService.TAG, "Time: " + System.currentTimeMillis() / 1000);
         String path = "https://radio.yandex.ru/api/v2.1/handlers/radio" + orAndVal(track) + "/settings";
         PostConfig postData = new PostConfig();
 
@@ -134,27 +166,36 @@ class Manager {
                 , null, "application/x-www-form-urlencoded", track);
     }
 
-    public String sayAboutTrack(Track track, double duration, Browser.Auth auth, String word) {
+    public String sayAboutTrack(Track track, double duration, Browser.Auth auth, String feedback) {
         try {
-            Log.d("Ya", word + " : Track duration: " + duration);
-            String path = "https://radio.yandex.ru/api/v2.1/handlers/radio" + orAndVal(track) + "/feedback/" + word + "/"
+            Log.d(PlayerService.TAG, feedback + " : Track duration: " + duration);
+            Log.d(PlayerService.TAG, "Time: " + System.currentTimeMillis() / 1000);
+            String path = "https://radio.yandex.ru/api/v2.1/handlers/radio" + orAndVal(track)
+                    + "/feedback/" + feedback + "/"
                     + track.getId() + ":" + track.getAlbumId();
 
             PostConfig postData = new PostConfig();
             setDefaultPostDataTrack(postData, track, auth);
-            if (duration != -1)
-                postData.put("totalPlayed", String.valueOf(duration));
-            return post(path, RequestBody.create(MediaType.parse("application/x-www-form-urlencoded"), postData.toString())
+            postData.put("totalPlayed", String.valueOf(duration));
+
+            String out = post(path, RequestBody.create(MediaType.parse("application/x-www-form-urlencoded")
+                    , postData.toString())
                     , null, "application/x-www-form-urlencoded", null);
+
+            if(feedback.equals(trackFinished) || feedback.equals(trackStarted) || feedback.equals(skip)){
+                historyFeedback(track, duration, auth, feedback);
+            }
+
+            return out;
         } catch (Exception e) {
             e.printStackTrace();
         }
         return null;
     }
 
-    Request getGetConnection(String url, Track track) throws IOException {
+    Request getGetConnection(String url, Track track) {
         Request.Builder builder = new Request.Builder();
-        builder.url(url).get();
+        builder.url(url);
 
         setDefaultHeaders(builder);
 
@@ -165,7 +206,7 @@ class Manager {
         return builder.build();
     }
 
-    private Request getPostRequest(String url, String contentType, Track track, RequestBody requestBody) throws Exception {
+    private Request getPostRequest(String url, String contentType, Track track, RequestBody requestBody) {
         Request.Builder builder = new Request.Builder();
         builder.url(url).post(requestBody);
 
@@ -235,10 +276,13 @@ class Manager {
         protected String doInBackground(Request... httpURLConnections) {
             Request connection = httpURLConnections[0];
             String res = null;
-            Response response = null;
-            try {
-                response = okHttpClient.newCall(connection).execute();
-                byte[] q = Utils.getBytes(response.body().byteStream());
+            try (Response response = new OkHttpClient.Builder().cookieJar(cookieJar).build()
+                    .newCall(connection).execute()){
+                if(response.body() == null) {
+                    Log.d(PlayerService.TAG, "response body: null");
+                    return null;
+                }
+                byte[] q = response.body().bytes();
                 String contentEncoding = response.header("Content-Encoding");
 
                 if(contentEncoding != null && contentEncoding.equals("gzip"))
@@ -246,18 +290,18 @@ class Manager {
                 else
                     res = new String(q);
 
+            } catch (SocketTimeoutException e){
+                e.printStackTrace();
+                Log.d(PlayerService.TAG,"Connection Problem");
+                res = doInBackground(connection);
             } catch (Exception e) {
                 e.printStackTrace();
-            }
-            finally {
-                if(response != null)
-                    response.close();
             }
             return res;
         }
     }
 
-        /*HttpURLConnection getGetConnection(String url, Track track) throws IOException {
+    /*HttpURLConnection getGetConnection(String url, Track track) throws IOException {
         URL uri = new URL(url);
         HttpURLConnection connection = (HttpURLConnection) uri.openConnection();
         connection.setRequestMethod("GET");

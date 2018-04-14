@@ -24,7 +24,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="2dp"
         android:layout_marginStart="4dp"
-        android:text="Guest"
+        android:text="@string/guest"
         android:textAppearance="@style/TextAppearance.AppCompat.Body1"
         app:layout_constraintBottom_toTopOf="@+id/textView3"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -36,7 +36,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="4dp"
         android:layout_marginStart="4dp"
-        android:text="Log In"
+        android:text="@string/log_in"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         android:onClick="login"/>

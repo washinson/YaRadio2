@@ -3,51 +3,32 @@ package com.washinson.yaradio2;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.app.ListFragment;
-import android.app.ProgressDialog;
-import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
-import android.os.IBinder;
-import android.os.PersistableBundle;
-import android.support.annotation.Nullable;
-import android.support.design.widget.BottomNavigationView;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.WebView;
-import android.widget.Button;
-import android.widget.ExpandableListView;
-import android.widget.ImageButton;
-import android.widget.ListAdapter;
-import android.widget.SimpleExpandableListAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -56,14 +37,17 @@ public class MainActivity extends AppCompatActivity
     SharedPreferences sharedPreferences;
 
     static ArrayList<Station> stations = new ArrayList<>();
-    Integer[] targets = {
+    static public Integer[] targets = {
             R.id.type_users,
             R.id.type_genres,
             R.id.type_moods,
             R.id.type_activities,
             R.id.type_epoches,
-            R.id.type_authors
+            R.id.type_authors,
+            R.id.type_recommendations
     };
+    static public ArrayList<Station.Subtype> recommend = new ArrayList<>();
+    int curChoice = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,30 +69,31 @@ public class MainActivity extends AppCompatActivity
         fragmentTransaction.replace(R.id.list_targets,
                 ListFragment.instantiate(this, ListFragment.class.getName()), "loading").commit();
 
-        //startService(new Intent(this, PlayerService.class));
         try {
             createGUI();
+            generateStations();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private void createGUI() throws Exception {
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+    private void createGUI() {
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
     }
 
     private void generateStations() throws Exception {
         MainActivity.stations.clear();
+
         if(sharedPreferences.getString("library.jsx", "").equals("")){
             updateStations();
         }
@@ -116,22 +101,23 @@ public class MainActivity extends AppCompatActivity
         String[] targets = {
                 "user", "genre", "mood", "activity", "epoch", "author"
         };
+
         String response = sharedPreferences.getString("library.jsx", "");
         JSONObject types = new JSONObject(response).getJSONObject("types");
         JSONObject stations = new JSONObject(response).getJSONObject("stations");
-        int i = 0; boolean was = false;
+        int i = 0;
         for(String target : targets){
             if(types.getJSONObject(target).has("children")) {
                 MainActivity.stations.add(Utils.makeStation(target,
                         types.getJSONObject(target).getJSONArray("children"),
                         stations));
-                if(was) continue;
-                loadType(i); was = true;
             }
             else
                 MainActivity.stations.add(Utils.makeStation(target, null, stations));
             i++;
         }
+
+        loadType(curChoice);
     }
 
     boolean hasInternetConnection(){
@@ -148,7 +134,7 @@ public class MainActivity extends AppCompatActivity
     protected void onResume() {
         super.onResume();
         if(Browser.getLogin() != null){
-            NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+            NavigationView navigationView = findViewById(R.id.nav_view);
             TextView textView = navigationView.getHeaderView(0).findViewById(R.id.fakeTextView);
             textView.setText(Browser.getLogin());
             TextView textView2 = navigationView.getHeaderView(0).findViewById(R.id.textView3);
@@ -167,6 +153,11 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void loadType(int i) {
+        curChoice = i;
+
+        NavigationView navigationView = findViewById(R.id.nav_view);
+        navigationView.setCheckedItem(targets[i]);
+
         TargetFragment fragment = new TargetFragment();
         Bundle bundle = new Bundle();
         bundle.putInt("StationID", i);
@@ -175,6 +166,10 @@ public class MainActivity extends AppCompatActivity
         FragmentManager fragmentManager = getFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager
                 .beginTransaction();
+
+        if(fragmentManager.findFragmentByTag("setting") != null){
+            fragmentManager.popBackStack();
+        }
 
         fragmentTransaction.replace(R.id.list_targets, fragment);
         fragmentTransaction.commit();
@@ -221,7 +216,8 @@ public class MainActivity extends AppCompatActivity
             FragmentTransaction fragmentTransaction = fragmentManager
                     .beginTransaction();
             if(fragmentManager.findFragmentByTag("setting") == null)
-                fragmentTransaction.replace(R.id.list_targets, new SettingFragment(), "setting").addToBackStack(null).commit();
+                fragmentTransaction.replace(R.id.list_targets, new SettingFragment(), "setting")
+                        .addToBackStack("setting").commit();
             return true;
         }
 
@@ -236,14 +232,18 @@ public class MainActivity extends AppCompatActivity
 
         for(int i = 0; i < targets.length; i++){
             if(id == targets[i]) {
+                if(id == R.id.type_users && Browser.getLogin() == null){
+                    Intent intent = new Intent(this, Browser.class);
+                    startActivity(intent);
+                }
                 loadType(i);
-                DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+                DrawerLayout drawer = findViewById(R.id.drawer_layout);
                 drawer.closeDrawer(GravityCompat.START);
                 return true;
             }
         }
 
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return false;
     }
@@ -254,7 +254,7 @@ public class MainActivity extends AppCompatActivity
         }else {
             Intent intent = new Intent(this, Browser.class);
             startActivity(intent);
-            DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+            DrawerLayout drawer = findViewById(R.id.drawer_layout);
             drawer.closeDrawer(GravityCompat.START);
         }
     }

@@ -11,7 +11,9 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Binder;
+import android.os.Handler;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
@@ -23,7 +25,29 @@ import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
+import android.widget.Toast;
 
+import com.google.android.exoplayer2.ExoPlaybackException;
+import com.google.android.exoplayer2.ExoPlayer;
+import com.google.android.exoplayer2.ExoPlayerFactory;
+import com.google.android.exoplayer2.PlaybackParameters;
+import com.google.android.exoplayer2.Player;
+import com.google.android.exoplayer2.SimpleExoPlayer;
+import com.google.android.exoplayer2.Timeline;
+import com.google.android.exoplayer2.source.ExtractorMediaSource;
+import com.google.android.exoplayer2.source.MediaSource;
+import com.google.android.exoplayer2.source.TrackGroupArray;
+import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
+import com.google.android.exoplayer2.trackselection.TrackSelection;
+import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
+import com.google.android.exoplayer2.trackselection.TrackSelector;
+import com.google.android.exoplayer2.upstream.BandwidthMeter;
+import com.google.android.exoplayer2.upstream.DataSource;
+import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
+import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
+import com.google.android.exoplayer2.upstream.cache.SimpleCache;
+import com.google.android.exoplayer2.util.Util;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Request;
 import com.squareup.picasso.Target;
@@ -44,16 +68,21 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 
+import okhttp3.Cache;
+
+import static com.google.android.exoplayer2.Player.STATE_ENDED;
+import static com.google.android.exoplayer2.Player.STATE_IDLE;
+
 public class PlayerService extends Service {
     private int NOTIFICATION_ID = 121;
-    String TAG = "YaPlayer";
+    static public String TAG = "YaPlayer";
 
     static Station.Subtype subtype;
     Track track, nextTrack;
     ArrayDeque<Track> queue = new ArrayDeque<>();
     ArrayList<Track> history = new ArrayList<>();
 
-    MediaPlayer mp;
+    SimpleExoPlayer simpleExoPlayer;
     MediaSessionCompat mediaSession;
     PlaybackStateCompat.Builder mStateBuilder = new PlaybackStateCompat.Builder().setActions(
             PlaybackStateCompat.ACTION_PLAY
@@ -65,21 +94,19 @@ public class PlayerService extends Service {
     private MediaMetadataCompat.Builder metadataBuilder = new MediaMetadataCompat.Builder();
     private AudioManager audioManager;
     private Browser.Auth auth;
+    MediaSource mediaSource;
 
     SharedPreferences sharedPreferences;
 
 
     void pause(){
-        if(mediaSession.getController().getPlaybackState().getState() != PlaybackStateCompat.STATE_PLAYING)
-            return;
-        mp.pause();
-        mediaSession.setPlaybackState(
-                mStateBuilder.setState(PlaybackStateCompat.STATE_PAUSED,
-                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 1).build());
+        simpleExoPlayer.setPlayWhenReady(false);
     }
 
     void stop() {
-        mp.release();
+        if(simpleExoPlayer.getPlaybackState() == STATE_IDLE)
+            simpleExoPlayer.stop(true);
+        simpleExoPlayer.release();
         mediaSession.setActive(false);
         mediaSession.setPlaybackState(
                 mStateBuilder.setState(PlaybackStateCompat.STATE_STOPPED,
@@ -88,31 +115,22 @@ public class PlayerService extends Service {
 
     void play(boolean isPlayed) {
         if(!isPlayed){
-            mediaSession.getController().getTransportControls().skipToNext();
+            mediaSessionCallback.onSkipToNext();
             return;
         }
-        if(mediaSession.getController().getPlaybackState().getState() == PlaybackStateCompat.STATE_PLAYING)
-            return;
-        mp.start();
-        mediaSession.setPlaybackState(
-                mStateBuilder.setState(PlaybackStateCompat.STATE_PLAYING,
-                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 1).build());
+        simpleExoPlayer.setPlayWhenReady(true);
     }
 
     void skip() {
         try {
-            mp.reset();
             startTrack(track);
-            mediaSession.setPlaybackState(
-                    mStateBuilder.setState(PlaybackStateCompat.STATE_PLAYING,
-                            PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 1).build());
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     void startTrack(Track track) throws Exception {
-        Manager.getInstance().sayAboutTrack(track,-1,
+        Manager.getInstance().sayAboutTrack(track,0,
                 getAuth(), Manager.trackStarted);
 
         Log.i(TAG,"----");
@@ -123,6 +141,8 @@ public class PlayerService extends Service {
         //        + track.getId() + ":" + track.getAlbumId() + "/radio-web-"
         //        + track.getStation().targetName + "-" + track.getStation().name
         //        + "-direct/download/m?hq=0&external-domain=radio.yandex.ru&overembed=no";
+
+        //Manager.getInstance().get(path, null, track);
 
         String path = "https://api.music.yandex.net/tracks/" + track.getId() + "/download-info";
 
@@ -145,12 +165,16 @@ public class PlayerService extends Service {
         DownloadInfo info = DownloadInfo.fromJSON(downloadInformation);
         String downloadPath = info.getSrc();
 
-        try {
-            mp.setDataSource(downloadPath);
-            mp.prepareAsync();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        Log.d(TAG, "track: " + downloadPath);
+
+        DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(this,
+                Manager.browser, null);
+
+        mediaSource = new ExtractorMediaSource.Factory(dataSourceFactory)
+                .createMediaSource(android.net.Uri.parse(downloadPath));
+
+        simpleExoPlayer.prepare(mediaSource);
+        simpleExoPlayer.setPlayWhenReady(true);
     }
 
     void prepare(){
@@ -160,6 +184,7 @@ public class PlayerService extends Service {
             track = queue.getFirst();
             queue.removeFirst();
             nextTrack = queue.getFirst();
+            Manager.getInstance().sayAboutTrack(track, 0, auth, Manager.radioStarted);
         } else if(queue.size() == 0) {
             nextTrack = null;
             updateTracks();
@@ -219,7 +244,7 @@ public class PlayerService extends Service {
     }
 
     void notifyTrack(final Track track) {
-        Picasso.get().load(Utils.getCover(300, track.getCover())).into(target);
+        Picasso.get().load(Utils.getCover(600, track.getCover())).into(target);
         MediaMetadataCompat metadata = metadataBuilder
                 .putString(MediaMetadataCompat.METADATA_KEY_TITLE, track.getTitle())
                 .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
@@ -245,29 +270,14 @@ public class PlayerService extends Service {
 
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 
-        mp = new MediaPlayer();
-        mp.setOnErrorListener(new MediaPlayer.OnErrorListener() {
-            @Override
-            public boolean onError(MediaPlayer mediaPlayer, int i, int i1) {
-                mediaPlayer.release();
-                return false;
-            }
-        });
-        mp.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-            @Override
-            public void onPrepared(MediaPlayer mediaPlayer) {
-                mediaPlayer.start();
-            }
-        });
-        mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-            @Override
-            public void onCompletion(MediaPlayer mediaPlayer) {
-                track.setFinished(true);
-                Manager.getInstance().sayAboutTrack(track, mediaPlayer.getCurrentPosition() / 1000.0,
-                        auth, Manager.trackFinished);
-                mediaSession.getController().getTransportControls().skipToNext();
-            }
-        });
+        BandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
+        TrackSelection.Factory videoTrackSelectionFactory =
+                new AdaptiveTrackSelection.Factory(bandwidthMeter);
+        TrackSelector trackSelector =
+                new DefaultTrackSelector(videoTrackSelectionFactory);
+
+        simpleExoPlayer = ExoPlayerFactory.newSimpleInstance(this, trackSelector);
+        simpleExoPlayer.addListener(eventListener);
 
         mediaSession = new MediaSessionCompat(this, TAG);
         mediaSession.setFlags(
@@ -292,14 +302,13 @@ public class PlayerService extends Service {
     @Override
     public void onTaskRemoved(Intent rootIntent) {
         super.onTaskRemoved(rootIntent);
-        mediaSession.getController().getTransportControls().stop();
+        mediaSessionCallback.onStop();
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Log.d(TAG, "onDestroy: ");
-        mp.release();
+        simpleExoPlayer.release();
         mediaSessionCallback = null;
     }
 
@@ -385,17 +394,10 @@ public class PlayerService extends Service {
                 PendingIntent.getBroadcast(this, 0, new Intent("dislike"), 0)
         ));
 
-        if(!track.isLiked()) {
-            builder.addAction(new NotificationCompat.Action(
-                    R.drawable.ic_like, getString(R.string.like_track),
-                    PendingIntent.getBroadcast(this, 0, new Intent("like"), 0)
-            ));
-        } else {
-            builder.addAction(new NotificationCompat.Action(
-                    R.drawable.ic_liked, getString(R.string.like_track),
-                    PendingIntent.getBroadcast(this, 0, new Intent("like"), 0)
-            ));
-        }
+        builder.addAction(new NotificationCompat.Action(
+                (!track.isLiked() ? R.drawable.ic_like : R.drawable.ic_liked), getString(R.string.like_track),
+                PendingIntent.getBroadcast(this, 0, new Intent("like"), 0)
+        ));
 
         builder.setStyle(new android.support.v4.media.app.NotificationCompat.MediaStyle()
                 // В компактном варианте показывать Action с данным порядковым номером.
@@ -433,8 +435,8 @@ public class PlayerService extends Service {
 
     public Browser.Auth getAuth() { return auth; }
 
-    public MediaPlayer getMp() {
-        return mp;
+    public SimpleExoPlayer getMp() {
+        return simpleExoPlayer;
     }
 
     public Track getTrack() {
@@ -444,6 +446,66 @@ public class PlayerService extends Service {
     public MediaSessionCompat getMediaSession() {
         return mediaSession;
     }
+
+    Player.EventListener eventListener = new Player.EventListener() {
+        @Override
+        public void onTimelineChanged(Timeline timeline, Object manifest, int reason) {
+
+        }
+
+        @Override
+        public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {
+
+        }
+
+        @Override
+        public void onLoadingChanged(boolean isLoading) {
+
+        }
+
+        @Override
+        public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
+            if(playbackState == STATE_ENDED){
+                long time = getMp().getCurrentPosition();
+                //simpleExoPlayer.stop(true);
+                track.setFinished(true);
+                //Manager.init(PlayerService.this);
+                Manager.getInstance().sayAboutTrack(track, time / 1000.0,
+                        auth, Manager.trackFinished);
+                mediaSessionCallback.onSkipToNext();
+            }
+        }
+
+        @Override
+        public void onRepeatModeChanged(int repeatMode) {
+
+        }
+
+        @Override
+        public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled) {
+
+        }
+
+        @Override
+        public void onPlayerError(ExoPlaybackException error) {
+            error.printStackTrace();
+        }
+
+        @Override
+        public void onPositionDiscontinuity(int reason) {
+
+        }
+
+        @Override
+        public void onPlaybackParametersChanged(PlaybackParameters playbackParameters) {
+
+        }
+
+        @Override
+        public void onSeekProcessed() {
+
+        }
+    };
 
     private static class QualityInfo {
         HashMap<Integer, JSONObject> qualities = new HashMap<>();

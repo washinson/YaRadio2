@@ -6,21 +6,24 @@
     <group android:checkableBehavior="single">
         <item
             android:id="@+id/type_users"
-            android:title="Personal" />
+            android:title="@string/personal" />
         <item
             android:id="@+id/type_genres"
-            android:title="Genre" />
+            android:title="@string/genre" />
         <item
             android:id="@+id/type_moods"
-            android:title="Mood" />
+            android:title="@string/mood" />
         <item
             android:id="@+id/type_activities"
-            android:title="Activity" />
+            android:title="@string/activity" />
         <item
             android:id="@+id/type_epoches"
-            android:title="Epoche" />
+            android:title="@string/epoche" />
         <item
             android:id="@+id/type_authors"
-            android:title="Authors" />
+            android:title="@string/authors" />
+        <item
+            android:id="@+id/type_recommendations"
+            android:title="@string/recommendations" />
     </group>
 </menu>

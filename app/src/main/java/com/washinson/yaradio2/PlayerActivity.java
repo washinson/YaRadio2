@@ -1,6 +1,8 @@
 package com.washinson.yaradio2;
 
 import android.content.BroadcastReceiver;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -22,6 +24,7 @@ import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class PlayerActivity extends AppCompatActivity {
 
@@ -52,7 +55,6 @@ public class PlayerActivity extends AppCompatActivity {
                             @Override
                             public void onSessionDestroyed() {
                                 super.onSessionDestroyed();
-                                Log.d("TAG", "onSessionDestroyed: ");
                                 PlayerActivity.this.finish();
                             }
                         }
@@ -151,6 +153,26 @@ public class PlayerActivity extends AppCompatActivity {
             public void onClick(View view) {
                 Intent intent = new Intent(PlayerActivity.this, SubtypeSetting.class);
                 startActivity(intent);
+            }
+        });
+        label.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                ClipboardManager clipboard = (ClipboardManager)
+                        getSystemService(Context.CLIPBOARD_SERVICE);
+                if(playerService == null)
+                    return;
+
+                Track track = playerService.getTrack();
+
+                if(track == null)
+                    return;
+
+                ClipData clip = ClipData.newPlainText("Track info", track.getArtist() + " - " + track.getTitle());
+                if (clipboard != null) {
+                    clipboard.setPrimaryClip(clip);
+                    Toast.makeText(PlayerActivity.this, getString(R.string.copied), Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }

@@ -18,4 +18,14 @@
     <string name="_0_no_economy_192_bitrate">0 - без экономии (192 bitrate)</string>
     <string name="_1_medium_economy_128_bitrate">1 - средняя экономия (128 bitrate)</string>
     <string name="_2_high_economy_64_bitrate">2 - высокая экономия (64 bitrate)</string>
+    <string name="recommendations">Рекомендации</string>
+    <string name="personal">Личное</string>
+    <string name="genre">Жанр</string>
+    <string name="mood">Настроение</string>
+    <string name="activity">Занятие</string>
+    <string name="epoche">Эпоха</string>
+    <string name="authors">Авторы</string>
+    <string name="guest">Гость</string>
+    <string name="log_in">Войти</string>
+    <string name="copied">Скопировано!</string>
 </resources>

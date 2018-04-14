@@ -24,6 +24,7 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
     private PlayerService service;
     private MediaSessionCompat mediaSession;
     private AudioManager audioManager;
+    private boolean audioFocusRequested = false;
 
     MediaSessionCallback(Context mContext, final PlayerService service,
                          MediaSessionCompat mediaSession, AudioManager audioManager) {
@@ -36,20 +37,24 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
     @Override
     public void onPause() {
         super.onPause();
-        service.pause();
-        service.refreshNotificationAndForegroundStatus(PlaybackStateCompat.STATE_PAUSED);
-        try{
+        if(service.simpleExoPlayer.getPlayWhenReady()) {
+            service.pause();
             mContext.unregisterReceiver(becomingNoisyReceiver);
-        } catch (IllegalArgumentException e){
-            e.printStackTrace();
         }
+
+        mediaSession.setPlaybackState(
+                service.mStateBuilder.setState(PlaybackStateCompat.STATE_PAUSED,
+                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 1).build());
+
+        service.refreshNotificationAndForegroundStatus(PlaybackStateCompat.STATE_PAUSED);
     }
 
     @Override
     public void onSkipToNext() {
         super.onSkipToNext();
         if(service.getTrack() != null && !service.getTrack().isFinished()){
-            Manager.getInstance().sayAboutTrack(service.getTrack(),service.getMp().getCurrentPosition()/1000.0,
+            Manager.getInstance().sayAboutTrack(service.getTrack(),
+                    service.getMp().getCurrentPosition()/1000.0,
                     service.getAuth(), Manager.skip);
             service.queue.clear();
 
@@ -57,88 +62,74 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
                 service.queue.add(service.nextTrack);
         }
         service.prepare();
-        try{
-            mContext.unregisterReceiver(becomingNoisyReceiver);
-        } catch (IllegalArgumentException e){
-            e.printStackTrace();
-        } finally {
-            mContext.registerReceiver(
-                    becomingNoisyReceiver, new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY));
-        }
-        int audioFocusResult = audioManager.requestAudioFocus(
-                audioFocusChangeListener,
-                AudioManager.STREAM_MUSIC,
-                AudioManager.AUDIOFOCUS_GAIN);
-        if (audioFocusResult != AudioManager.AUDIOFOCUS_REQUEST_GRANTED)
-            return;
-        mediaSession.setActive(true);
+
         service.skip();
-        service.refreshNotificationAndForegroundStatus(PlaybackStateCompat.STATE_PLAYING);
+        onPlay();
     }
 
     @Override
     public void onPlay() {
         super.onPlay();
-        boolean isPlayed = service.getTrack() != null;
-        mContext.startService(new Intent(mContext.getApplicationContext(), PlayerService.class));
 
-        try{
-            mContext.unregisterReceiver(like);
-        } catch (IllegalArgumentException ignored){ }
-        finally {
+        boolean isPlayed = service.getTrack() != null;
+
+        if(!service.simpleExoPlayer.getPlayWhenReady()) {
+            mContext.startService(new Intent(mContext.getApplicationContext(), PlayerService.class));
+
+            if (!audioFocusRequested) {
+                audioFocusRequested = true;
+                int audioFocusResult = audioManager.requestAudioFocus(
+                        audioFocusChangeListener,
+                        AudioManager.STREAM_MUSIC,
+                        AudioManager.AUDIOFOCUS_GAIN);
+                if (audioFocusResult != AudioManager.AUDIOFOCUS_REQUEST_GRANTED)
+                    return;
+            }
+
+            mediaSession.setActive(true);
+
             mContext.registerReceiver(like, new IntentFilter("like"));
-        }
-        try{
-            mContext.unregisterReceiver(dislike);
-        } catch (IllegalArgumentException ignored){ }
-        finally {
             mContext.registerReceiver(dislike, new IntentFilter("dislike"));
-        }
-        try{
-            mContext.unregisterReceiver(becomingNoisyReceiver);
-        } catch (IllegalArgumentException ignored){ }
-        finally {
             mContext.registerReceiver(
                     becomingNoisyReceiver, new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY));
+
+            service.play(isPlayed);
+        } else {
+            if(!isPlayed)
+                service.play(isPlayed);
         }
 
-        int audioFocusResult = audioManager.requestAudioFocus(
-                audioFocusChangeListener,
-                AudioManager.STREAM_MUSIC,
-                AudioManager.AUDIOFOCUS_GAIN);
-        if (audioFocusResult != AudioManager.AUDIOFOCUS_REQUEST_GRANTED)
-            return;
-        mediaSession.setActive(true);
-        service.play(isPlayed);
         service.refreshNotificationAndForegroundStatus(PlaybackStateCompat.STATE_PLAYING);
+
+        mediaSession.setPlaybackState(
+                service.mStateBuilder.setState(PlaybackStateCompat.STATE_PLAYING,
+                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 1).build());
     }
 
     @Override
     public void onStop() {
         super.onStop();
         mContext.sendBroadcast(new Intent("stopped"));
-        service.track = null;
-        if(mContext != null) {
-            try{
-                mContext.unregisterReceiver(like);
-            } catch (IllegalArgumentException e){
-                e.printStackTrace();
-            }
-            try{
-                mContext.unregisterReceiver(dislike);
-            } catch (IllegalArgumentException e){
-                e.printStackTrace();
-            }
-            try{
-                mContext.unregisterReceiver(becomingNoisyReceiver);
-            } catch (IllegalArgumentException e){
-                e.printStackTrace();
-            }
+
+        if(service.simpleExoPlayer.getPlayWhenReady()){
+            service.simpleExoPlayer.setPlayWhenReady(false);
+            mContext.unregisterReceiver(like);
+            mContext.unregisterReceiver(dislike);
+            mContext.unregisterReceiver(becomingNoisyReceiver);
         }
-        audioManager.abandonAudioFocus(audioFocusChangeListener);
-        service.refreshNotificationAndForegroundStatus(PlaybackStateCompat.STATE_STOPPED);
+
+        if (audioFocusRequested) {
+            audioFocusRequested = false;
+            audioManager.abandonAudioFocus(audioFocusChangeListener);
+        }
+
         mediaSession.setActive(false);
+
+        service.track = null;
+
         service.stop();
+        service.refreshNotificationAndForegroundStatus(PlaybackStateCompat.STATE_STOPPED);
+
         service.stopSelf();
     }
 
@@ -176,7 +167,11 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
             Manager.getInstance().sayAboutTrack(
                     service.getTrack(), service.getMp().getCurrentPosition() / 1000.0,
                     service.getAuth(), Manager.dislike);
-            service.getMediaSession().getController().getTransportControls().skipToNext();
+
+            service.queue.clear();
+            service.nextTrack = null;
+
+            onSkipToNext();
             service.refreshNotificationAndForegroundStatus(
                     service.getMediaSession().getController().getPlaybackState().getState());
         }
@@ -197,6 +192,10 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
                         service.getTrack(), service.getMp().getCurrentPosition() / 1000.0,
                         service.getAuth(), Manager.unlike);
             }
+
+            service.queue.clear();
+            service.nextTrack = null;
+
             service.getMediaSession().setMetadata(service.getMediaSession().getController().getMetadata());
             service.refreshNotificationAndForegroundStatus(
                     service.getMediaSession().getController().getPlaybackState().getState());
