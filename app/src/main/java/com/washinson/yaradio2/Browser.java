@@ -140,6 +140,10 @@ public class Browser extends AppCompatActivity {
             String[] res = pair.split("=", 2);
             Cookie cookie = new Cookie.Builder().domain(HttpUrl.parse("https://radio.yandex.ru").topPrivateDomain())
                     .name(res[0]).value(res[1]).expiresAt(Long.MAX_VALUE).build();
+
+            if(getCookieParam(cookie.name()) != null)
+                continue;
+
             cookieArrayList.add(cookie);
         }
         Manager.getInstance().okHttpClient.cookieJar()

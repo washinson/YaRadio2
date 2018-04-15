@@ -153,7 +153,7 @@ public class PlayerService extends Service {
         //String src = jsonObject.getString("src") + "&format=json";
         QualityInfo qualityInfo = QualityInfo.fromJSON(jsonObject);
 
-        int quality = sharedPreferences.getInt("quality", SettingFragment.defVal);
+        String quality = sharedPreferences.getString("quality", SettingFragment.defVal);
         String src = qualityInfo.byQuality(quality) + "&format=json";
 
         okhttp3.Request.Builder builder = new okhttp3.Request.Builder().get().url(src);
@@ -194,6 +194,8 @@ public class PlayerService extends Service {
         } else {
             queue.removeFirst();
             updateTracks();
+            Log.d(TAG, "Track: " + track.toString());
+            Log.d(TAG, "Track: " + nextTrack.toString());
             track = nextTrack;
             nextTrack = queue.getFirst();
         }
@@ -244,7 +246,10 @@ public class PlayerService extends Service {
     }
 
     void notifyTrack(final Track track) {
-        Picasso.get().load(Utils.getCover(600, track.getCover())).into(target);
+        if(track.getCover().equals("https://music.yandex.ru/blocks/common/default.%%.png"))
+            Picasso.get().load(Utils.getCover(200, track.getCover())).into(target);
+        else
+            Picasso.get().load(Utils.getCover(600, track.getCover())).into(target);
         MediaMetadataCompat metadata = metadataBuilder
                 .putString(MediaMetadataCompat.METADATA_KEY_TITLE, track.getTitle())
                 .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
@@ -508,20 +513,20 @@ public class PlayerService extends Service {
     };
 
     private static class QualityInfo {
-        HashMap<Integer, JSONObject> qualities = new HashMap<>();
+        HashMap<String, JSONObject> qualities = new HashMap<>();
 
-        public static QualityInfo fromJSON(JSONObject src) throws JSONException {
+        static QualityInfo fromJSON(JSONObject src) throws JSONException {
             QualityInfo info = new QualityInfo();
             JSONArray jsonArray = src.getJSONArray("result");
             for(int i = 0; i < jsonArray.length(); i++){
                 JSONObject temp = jsonArray.getJSONObject(i);
 
-                info.qualities.put(temp.getInt("bitrateInKbps"), temp);
+                info.qualities.put(temp.getString("codec") + "_" + temp.getString("bitrateInKbps"), temp);
             }
             return info;
         }
 
-        public String byQuality(int quality) throws JSONException {
+        String byQuality(String quality) throws JSONException {
             return qualities.get(quality).getString("downloadInfoUrl");
         }
     }

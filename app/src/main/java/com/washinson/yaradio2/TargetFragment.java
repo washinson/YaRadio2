@@ -33,6 +33,7 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -71,7 +72,8 @@ public class TargetFragment extends Fragment {
             ArrayList<String> recommend = new ArrayList<>();
 
             for (Station.Subtype subtype : MainActivity.recommend) {
-                recommend.add(subtype.name);
+                recommend.add(Utils.getLocale(getActivity()).equals(new Locale("ru","RU")) ?
+                        subtype.nameView : subtype.name);
             }
 
             ArrayAdapter<String> adapter = new ArrayAdapter<>(getActivity(),
@@ -121,12 +123,14 @@ public class TargetFragment extends Fragment {
 
         for (Station.Type group : station.types) {
             map = new HashMap<>();
-            map.put("groupName", group.name);
+            map.put("groupName", Utils.getLocale(getActivity()).equals(new Locale("ru","RU")) ?
+                    group.nameView : group.name);
             groupDataList.add(map);
             ArrayList<Map<String, String>> сhildDataItemList = new ArrayList<>();
             for (Station.Subtype type : group.subtypes) {
                 map = new HashMap<>();
-                map.put("monthName", type.name);
+                map.put("monthName", Utils.getLocale(getActivity()).equals(new Locale("ru","RU")) ?
+                        type.nameView : type.name);
                 сhildDataItemList.add(map);
             }
             сhildDataList.add(сhildDataItemList);

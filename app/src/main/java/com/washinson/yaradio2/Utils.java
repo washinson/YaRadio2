@@ -1,5 +1,7 @@
 package com.washinson.yaradio2;
 
+import android.content.Context;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -13,6 +15,7 @@ import java.io.InputStreamReader;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -20,9 +23,13 @@ import java.util.zip.GZIPInputStream;
  */
 
 public class Utils {
+    static public Locale getLocale(Context context){
+        return context.getResources().getConfiguration().locale;
+    }
+
     static public String getPlayId(Track track){
-        // XDD
         String id = Browser.getCookieParam("device_id").replaceAll("\"", "");
+        // XDD
         return id + ":" + track.getId() + ":" + String.valueOf(Math.random()).substring(2);
     }
 
@@ -57,31 +64,6 @@ public class Utils {
         return buffer.toByteArray();
     }
 
-    public static String getPostDataString(JSONObject params) throws Exception {
-
-        StringBuilder result = new StringBuilder();
-        boolean first = true;
-
-        Iterator<String> itr = params.keys();
-
-        while(itr.hasNext()){
-
-            String key= itr.next();
-            Object value = params.get(key);
-
-            if (first)
-                first = false;
-            else
-                result.append("&");
-
-            result.append(URLEncoder.encode(key, "UTF-8"));
-            result.append("=");
-            result.append(URLEncoder.encode(value.toString(), "UTF-8"));
-
-        }
-        return result.toString();
-    }
-
     public static Station.Subtype makeSubtype(JSONObject object) throws JSONException {
         object = object.getJSONObject("station");
         JSONObject id = object.getJSONObject("id");
@@ -94,15 +76,29 @@ public class Utils {
             type = object.getJSONObject("parentId").getString("tag");
         }
 
-        return new Station.Subtype(subtypeName, type, target);
+        return new Station.Subtype(subtypeName, type, target, object.getString("name"), type, target);
     }
 
-    public static Station.Type makeType(JSONArray object, String target, String type) throws JSONException {
+    public static Station.Type makeType(JSONArray object, String target, String type, JSONObject stationsJSON) throws JSONException {
         ArrayList<Station.Subtype> stations = new ArrayList<>();
-        stations.add(new Station.Subtype(type, type, target));
+
+        String typeView = type;
+        if(stationsJSON.has(target + ":" + type))
+            typeView = stationsJSON.getJSONObject(target + ":" + type)
+                    .getJSONObject("station").getString("name");
+
+        if(stationsJSON.has(target + ":" + type))
+            stations.add(new Station.Subtype(stationsJSON.getJSONObject(target + ":" + type), typeView, target));
+        else
+            stations.add(new Station.Subtype(type, type, target, typeView, typeView, target));
         if(object != null) {
             for (int i = 0; i < object.length(); i++) {
-                stations.add(new Station.Subtype(object.getJSONObject(i).getString("tag"), type, target));
+                String name = object.getJSONObject(i).getString("tag");
+                if(stationsJSON.has(target + ":" + name))
+                    stations.add(new Station.Subtype(stationsJSON.getJSONObject(target + ":" + name), typeView, target));
+                else {
+                    stations.add(new Station.Subtype(name, type, target, name, typeView, target));
+                }
             }
         }
         return new Station.Type(type, target, stations);
@@ -115,12 +111,12 @@ public class Utils {
                 JSONObject data = types.getJSONObject(i);
                 String Target = data.getString("type");
                 String Type = data.getString("tag");
-                JSONObject station = stations.getJSONObject(Target + ":" + Type);
-                Station.Type stations1 = null;
-                if(station.getJSONObject("station").has("children"))
-                    stations1 = makeType(station.getJSONObject("station").getJSONArray("children"), Target, Type);
+                JSONObject station = stations.getJSONObject(Target + ":" + Type).getJSONObject("station");
+                Station.Type stations1;
+                if(station.has("children"))
+                    stations1 = makeType(station.getJSONArray("children"), Target, Type, stations);
                 else
-                    stations1 = makeType(null, Target, Type);
+                    stations1 = makeType(null, Target, Type, stations);
                 superStations1.add(stations1);
             }
         }

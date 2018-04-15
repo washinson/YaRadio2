@@ -47,14 +47,20 @@ public class Track {
                     .getString("title");
             batchId = track.getString("batchId");
             title = track.getString("title");
-            cover = track
-                    .getString("coverUri");
-            cover = "https://" + cover;
+            if(track.has("coverUri")) cover = "https://" + track.getString("coverUri");
+            else {
+                if(track.getJSONArray("albums").getJSONObject(0).has("cover")){
+                    cover = track.getJSONArray("albums")
+                            .getJSONObject(0).getJSONObject("cover").getString("uri");
+                }else {
+                    cover = "https://music.yandex.ru/blocks/common/default.%%.png";
+                }
+            }
 
             durationMs = track.getLong("durationMs");
 
             JSONArray artists = track.getJSONArray("artists");
-            StringBuilder artistNameBuilder = new StringBuilder();
+            StringBuilder artistNameBuilder = new StringBuilder().append("");
             for (int i = 0; i < artists.length(); i++) {
                 artistNameBuilder.append(artists.getJSONObject(i).getString("name"));
                 if (i != artists.length() - 1) {

@@ -14,32 +14,63 @@ import java.util.ArrayList;
 
 public class Station {
     String name;
+    String nameView;
     ArrayList<Type> types;
 
     public Station(String name, ArrayList<Type> types) {
         this.name = name;
         this.types = types;
+        if(types.size() == 0) return;
+        this.nameView = types.get(0).targetName;
     }
 
     static class Type {
         String name, targetName;
+        String nameView, targetView;
         ArrayList<Subtype> subtypes;
 
         public Type(String name, String targetName, ArrayList<Subtype> subtypes) {
             this.name = name;
             this.targetName = targetName;
             this.subtypes = subtypes;
+            if(subtypes.size() == 0) return;
+            this.nameView = subtypes.get(0).typeView;
+            this.targetView = subtypes.get(0).targetView;
         }
     }
 
     static class Subtype {
         String name, typeName, targetName;
+        String nameView, typeView, targetView;
         Settings settings;
 
-        public Subtype(String name, String typeName, String targetName) {
+        public Subtype(String name, String typeName, String targetName, String nameView, String typeView, String targetView) {
             this.name = name;
             this.typeName = typeName;
             this.targetName = targetName;
+            this.nameView = nameView;
+            this.typeView = typeView;
+            this.targetView = targetView;
+        }
+
+        public Subtype(JSONObject stationJSON, String typeView, String targetView) throws JSONException {
+            JSONObject object = stationJSON.getJSONObject("station");
+            JSONObject id = object.getJSONObject("id");
+
+            String target = id.getString("type");
+            String subtypeName = id.getString("tag");
+
+            String type = subtypeName;
+            if(object.has("parentId")){
+                type = object.getJSONObject("parentId").getString("tag");
+            }
+
+            this.name = subtypeName;
+            this.typeName = type;
+            this.targetName = target;
+            this.nameView = object.getString("name");
+            this.typeView = typeView;
+            this.targetView = targetView;
         }
 
         public Settings getSettings() throws Exception {

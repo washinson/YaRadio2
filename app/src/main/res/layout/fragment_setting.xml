@@ -18,21 +18,28 @@
         android:layout_height="wrap_content">
 
         <RadioButton
-            android:id="@+id/radioButton0"
+            android:id="@+id/radioButtonMP3_192"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/_0_no_economy_192_bitrate_mp3" />
+
+        <RadioButton
+            android:id="@+id/radioButtonAAC_192"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/_0_no_economy_192_bitrate" />
 
         <RadioButton
-            android:id="@+id/radioButton1"
+            android:id="@+id/radioButtonAAC_128"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/_1_medium_economy_128_bitrate" />
 
         <RadioButton
-            android:id="@+id/radioButton2"
+            android:id="@+id/radioButtonAAC_64"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"

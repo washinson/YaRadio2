@@ -103,8 +103,12 @@ public class MainActivity extends AppCompatActivity
         };
 
         String response = sharedPreferences.getString("library.jsx", "");
-        JSONObject types = new JSONObject(response).getJSONObject("types");
-        JSONObject stations = new JSONObject(response).getJSONObject("stations");
+
+        JSONObject object = new JSONObject(response);
+
+        JSONObject types = object.getJSONObject("types");
+        JSONObject stations = object.getJSONObject("stations");
+
         int i = 0;
         for(String target : targets){
             if(types.getJSONObject(target).has("children")) {
