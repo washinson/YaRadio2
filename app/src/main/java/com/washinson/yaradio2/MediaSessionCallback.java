@@ -13,6 +13,7 @@ import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.google.android.exoplayer2.Player;
 import com.washinson.yaradio2.PlayerService;
 
 /**
@@ -39,7 +40,7 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
         super.onPause();
         if(service.simpleExoPlayer.getPlayWhenReady()) {
             service.pause();
-            mContext.unregisterReceiver(becomingNoisyReceiver);
+            try {mContext.unregisterReceiver(becomingNoisyReceiver);} catch (Exception ignore){}
         }
 
         mediaSession.setPlaybackState(
@@ -52,6 +53,11 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
     @Override
     public void onSkipToNext() {
         super.onSkipToNext();
+
+        if(service.simpleExoPlayer.getPlaybackState() == Player.STATE_BUFFERING){
+            return;
+        }
+
         if(service.getTrack() != null && !service.getTrack().isFinished()){
             Manager.getInstance().sayAboutTrack(service.getTrack(),
                     service.getMp().getCurrentPosition()/1000.0,
@@ -61,6 +67,7 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
             if(service.nextTrack != null)
                 service.queue.add(service.nextTrack);
         }
+
         service.prepare();
 
         service.skip();
@@ -88,10 +95,10 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
 
             mediaSession.setActive(true);
 
-            mContext.registerReceiver(like, new IntentFilter("like"));
-            mContext.registerReceiver(dislike, new IntentFilter("dislike"));
-            mContext.registerReceiver(
-                    becomingNoisyReceiver, new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY));
+            try {mContext.registerReceiver(like, new IntentFilter("like"));} catch (Exception ignore){}
+            try {mContext.registerReceiver(dislike, new IntentFilter("dislike"));} catch (Exception ignore){}
+            try {mContext.registerReceiver(
+                    becomingNoisyReceiver, new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY));} catch (Exception ignore){}
 
             service.play(isPlayed);
         } else {
@@ -113,9 +120,9 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
 
         if(service.simpleExoPlayer.getPlayWhenReady()){
             service.simpleExoPlayer.setPlayWhenReady(false);
-            mContext.unregisterReceiver(like);
-            mContext.unregisterReceiver(dislike);
-            mContext.unregisterReceiver(becomingNoisyReceiver);
+            try {mContext.unregisterReceiver(like);} catch (Exception ignore){}
+            try {mContext.unregisterReceiver(dislike);} catch (Exception ignore){}
+            try {mContext.unregisterReceiver(becomingNoisyReceiver);} catch (Exception ignore){}
         }
 
         if (audioFocusRequested) {

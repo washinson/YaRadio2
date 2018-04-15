@@ -29,4 +29,7 @@
     <string name="log_in">Войти</string>
     <string name="copied">Скопировано!</string>
     <string name="_0_no_economy_192_bitrate_mp3">0 - нет экономии (192 bitrate mp3)</string>
+    <string name="track_info">Инфо о треке</string>
+    <string name="download_track">Загрузить трэк?</string>
+    <string name="download_title">Загрузить?</string>
 </resources>

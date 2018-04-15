@@ -34,4 +34,7 @@
     <string name="log_in">Log In</string>
     <string name="copied">Copied!</string>
     <string name="_0_no_economy_192_bitrate_mp3">0 - no economy (192 bitrate mp3)</string>
+    <string name="track_info">Track info</string>
+    <string name="download_track">Download track?</string>
+    <string name="download_title">Download?</string>
 </resources>

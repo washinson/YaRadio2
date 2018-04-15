@@ -72,6 +72,7 @@ import okhttp3.Cache;
 
 import static com.google.android.exoplayer2.Player.STATE_ENDED;
 import static com.google.android.exoplayer2.Player.STATE_IDLE;
+import static com.google.android.exoplayer2.Player.STATE_READY;
 
 public class PlayerService extends Service {
     private int NOTIFICATION_ID = 121;
@@ -152,6 +153,8 @@ public class PlayerService extends Service {
 
         //String src = jsonObject.getString("src") + "&format=json";
         QualityInfo qualityInfo = QualityInfo.fromJSON(jsonObject);
+
+        track.setQualityInfo(qualityInfo);
 
         String quality = sharedPreferences.getString("quality", SettingFragment.defVal);
         String src = qualityInfo.byQuality(quality) + "&format=json";
@@ -246,6 +249,7 @@ public class PlayerService extends Service {
     }
 
     void notifyTrack(final Track track) {
+        Picasso.get().cancelRequest(target);
         if(track.getCover().equals("https://music.yandex.ru/blocks/common/default.%%.png"))
             Picasso.get().load(Utils.getCover(200, track.getCover())).into(target);
         else
@@ -262,6 +266,13 @@ public class PlayerService extends Service {
         mediaSession.setPlaybackState(
                 mStateBuilder.setState(PlaybackStateCompat.STATE_PLAYING,
                         PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 1).build());
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                refreshNotificationAndForegroundStatus(PlaybackStateCompat.STATE_PLAYING);
+            }
+        }).start();
     }
 
     @Override
@@ -512,7 +523,7 @@ public class PlayerService extends Service {
         }
     };
 
-    private static class QualityInfo {
+    public static class QualityInfo {
         HashMap<String, JSONObject> qualities = new HashMap<>();
 
         static QualityInfo fromJSON(JSONObject src) throws JSONException {
@@ -531,7 +542,7 @@ public class PlayerService extends Service {
         }
     }
 
-    private static class DownloadInfo {
+    public static class DownloadInfo {
         String s;
         String ts;
         String path;

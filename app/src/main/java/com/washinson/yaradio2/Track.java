@@ -10,6 +10,7 @@ import org.json.JSONObject;
 
 public class Track {
     Station.Subtype station;
+    PlayerService.QualityInfo qualityInfo;
 
     private int id;
     private int albumId;
@@ -30,6 +31,10 @@ public class Track {
     public String getCover() { return cover; }
 
     public boolean isFinished() { return finished; }
+
+    public PlayerService.QualityInfo getQualityInfo() { return qualityInfo; }
+
+    public void setQualityInfo(PlayerService.QualityInfo qualityInfo) { this.qualityInfo = qualityInfo; }
 
     public Track(JSONObject jsonObject, Station.Subtype station) {
         try {

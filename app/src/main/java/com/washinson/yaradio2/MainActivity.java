@@ -137,14 +137,14 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onResume() {
         super.onResume();
-        if(Browser.getLogin() != null){
-            NavigationView navigationView = findViewById(R.id.nav_view);
-            TextView textView = navigationView.getHeaderView(0).findViewById(R.id.fakeTextView);
-            textView.setText(Browser.getLogin());
-            TextView textView2 = navigationView.getHeaderView(0).findViewById(R.id.textView3);
-            textView2.setText("");
-        }
         try {
+            if(Browser.getLogin() != null){
+                NavigationView navigationView = findViewById(R.id.nav_view);
+                TextView textView = navigationView.getHeaderView(0).findViewById(R.id.fakeTextView);
+                textView.setText(Browser.getLogin());
+                TextView textView2 = navigationView.getHeaderView(0).findViewById(R.id.textView3);
+                textView2.setText("");
+            }
             if(hasInternetConnection())
                 generateStations();
             else {
