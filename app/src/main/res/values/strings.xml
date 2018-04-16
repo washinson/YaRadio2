@@ -37,4 +37,8 @@
     <string name="track_info">Track info</string>
     <string name="download_track">Download track?</string>
     <string name="download_title">Download?</string>
+    <string name="error">Error</string>
+    <string name="already_yet">Already yet</string>
+    <string name="permission_denied">Permission denied</string>
+    <string name="updated">Updated</string>
 </resources>

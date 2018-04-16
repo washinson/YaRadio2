@@ -30,6 +30,8 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 
+import okhttp3.internal.Util;
+
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
@@ -54,7 +56,7 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Manager.browser = new WebView(this).getSettings().getUserAgentString();
+        Manager.browser = com.google.android.exoplayer2.util.Util.getUserAgent(this, getPackageName());
         Manager.init(this);
 
         Window window = this.getWindow();

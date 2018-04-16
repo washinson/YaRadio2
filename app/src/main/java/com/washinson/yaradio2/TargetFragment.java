@@ -97,11 +97,7 @@ public class TargetFragment extends Fragment {
 
     @Override
     public View onCreateView(final LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        int id;
-        if(getArguments() == null) {
-            return inflater.inflate(R.layout.emply, container, false);
-        }
-        else id = getArguments().getInt("StationID");
+        int id = getArguments().getInt("StationID");
 
         if(MainActivity.targets[id] == R.id.type_recommendations){
             return createList(inflater, container, savedInstanceState);

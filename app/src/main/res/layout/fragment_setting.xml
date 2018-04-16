@@ -17,12 +17,12 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content">
 
-        <RadioButton
+        <!--<RadioButton
             android:id="@+id/radioButtonMP3_192"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/_0_no_economy_192_bitrate_mp3" />
+            android:text="@string/_0_no_economy_192_bitrate_mp3" /> -->
 
         <RadioButton
             android:id="@+id/radioButtonAAC_192"

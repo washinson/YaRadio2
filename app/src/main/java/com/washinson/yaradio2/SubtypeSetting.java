@@ -150,7 +150,7 @@ public class SubtypeSetting extends AppCompatActivity {
                     playerService.queue.clear();
                     playerService.track.station.settings = null;
                     playerService.nextTrack = null;
-                    Toast.makeText(SubtypeSetting.this, "Updated", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(SubtypeSetting.this, getString(R.string.updated), Toast.LENGTH_SHORT).show();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

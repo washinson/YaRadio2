@@ -8,9 +8,8 @@
     tools:context="com.washinson.yaradio2.MainActivity"
     tools:showIn="@layout/app_bar_main">
 
-    <fragment
+    <FrameLayout
         android:id="@+id/list_targets"
-        android:name="com.washinson.yaradio2.TargetFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 </android.support.constraint.ConstraintLayout>

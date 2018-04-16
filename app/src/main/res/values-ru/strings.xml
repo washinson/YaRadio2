@@ -32,4 +32,8 @@
     <string name="track_info">Инфо о треке</string>
     <string name="download_track">Загрузить трэк?</string>
     <string name="download_title">Загрузить?</string>
+    <string name="error">Ошибка</string>
+    <string name="already_yet">Уже есть</string>
+    <string name="permission_denied">Нет прав</string>
+    <string name="updated">Обновлено</string>
 </resources>

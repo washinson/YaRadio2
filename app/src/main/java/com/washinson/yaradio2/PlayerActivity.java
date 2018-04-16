@@ -1,5 +1,7 @@
 package com.washinson.yaradio2;
 
+import android.Manifest;
+import android.app.Activity;
 import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
@@ -10,11 +12,14 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.graphics.Path;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Environment;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
@@ -36,6 +41,8 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.net.URI;
+
+import static android.os.Environment.DIRECTORY_MUSIC;
 
 public class PlayerActivity extends AppCompatActivity {
 
@@ -196,41 +203,23 @@ public class PlayerActivity extends AppCompatActivity {
                 builder.setPositiveButton(getString(android.R.string.yes), new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
-                        try {
-                            if(playerService == null || playerService.getTrack() == null ||
-                                    playerService.getTrack().getQualityInfo() == null ||
-                                    playerService.getTrack().getQualityInfo().qualities.isEmpty())
-                                return;
-                            String path = playerService.getTrack().getQualityInfo().byQuality("mp3_192");
-                            Track track = playerService.getTrack();
-
-                            String src = path + "&format=json";
-
-                            okhttp3.Request.Builder builder = new okhttp3.Request.Builder().get().url(src);
-                            builder.addHeader("Host", "storage.mds.yandex.net");
-                            Manager.getInstance().setDefaultHeaders(builder);
-
-                            String result = Manager.getInstance().get(src, builder.build(), track);
-                            JSONObject downloadInformation = new JSONObject(result);
-                            PlayerService.DownloadInfo info = PlayerService.DownloadInfo.fromJSON(downloadInformation);
-                            String downloadPath = info.getSrc();
-
-                            DownloadManager downloadManager =
-                                    (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
-                            DownloadManager.Request request = new DownloadManager.Request(android.net.Uri.parse(downloadPath));
-                            request.setTitle(track.getTitle());
-                            request.setDescription(track.getArtist());
-                            File file = new File((Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC).getAbsolutePath()
-                                    + "/" + track.getTitle() + " - " + track.getArtist() + ".mp3").replace(" ", "_"));
-                            request.setDestinationUri(android.net.Uri.fromFile(file));
-                            request.allowScanningByMediaScanner();
-                            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-                            request.setVisibleInDownloadsUi(true);
-                            if (downloadManager != null) {
-                                downloadManager.enqueue(request);
+                        int requested = ContextCompat.checkSelfPermission(
+                                PlayerActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                        if(requested == android.content.pm.PackageManager.PERMISSION_DENIED){
+                            int ACCESS_EXTERNAL_STORAGE_STATE = 1;
+                            ActivityCompat.requestPermissions(PlayerActivity.this,
+                                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                                    ACCESS_EXTERNAL_STORAGE_STATE);
+                        } else {
+                            try {
+                                loadTrack();
+                            } catch (Exception e) {
+                                AlertDialog.Builder alertBuilder1 = new AlertDialog.Builder(PlayerActivity.this);
+                                alertBuilder1.setMessage(getString(R.string.error))
+                                        .setTitle(e.getMessage())
+                                        .create().show();
+                                e.printStackTrace();
                             }
-                        } catch (Exception e) {
-                            e.printStackTrace();
                         }
                         dialogInterface.cancel();
                     }
@@ -247,6 +236,71 @@ public class PlayerActivity extends AppCompatActivity {
                 alertDialog.show();
             }
         });
+    }
+
+    void loadTrack() throws Exception {
+        if(playerService == null || playerService.getTrack() == null ||
+                playerService.getTrack().getQualityInfo() == null ||
+                playerService.getTrack().getQualityInfo().qualities.isEmpty())
+            return;
+        String path = playerService.getTrack().getQualityInfo().byQuality("mp3_192");
+        Track track = playerService.getTrack();
+
+        File file = new File((Environment.getExternalStoragePublicDirectory(DIRECTORY_MUSIC).getAbsolutePath()
+                + "/YaRadio/" + track.getStation().name + "/" + track.getTitle() + " - " + track.getArtist() + ".mp3").replace(" ", "_"));
+        if(file.exists()) {
+            throw new Exception(getString(R.string.already_yet));
+        }
+
+        String src = path + "&format=json";
+
+        okhttp3.Request.Builder builder = new okhttp3.Request.Builder().get().url(src);
+        builder.addHeader("Host", "storage.mds.yandex.net");
+        Manager.getInstance().setDefaultHeaders(builder);
+
+        String result = Manager.getInstance().get(src, builder.build(), track);
+        JSONObject downloadInformation = new JSONObject(result);
+        PlayerService.DownloadInfo info = PlayerService.DownloadInfo.fromJSON(downloadInformation);
+        String downloadPath = info.getSrc();
+
+        DownloadManager downloadManager =
+                (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+        DownloadManager.Request request = new DownloadManager.Request(android.net.Uri.parse(downloadPath));
+        request.setTitle(track.getTitle());
+        request.setDescription(track.getArtist());
+        request.setDestinationUri(android.net.Uri.fromFile(file));
+        request.allowScanningByMediaScanner();
+        request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+        request.setVisibleInDownloadsUi(true);
+        //request.setDestinationInExternalFilesDir(PlayerActivity.this,
+        //        DIRECTORY_MUSIC, file.getPath());
+        if (downloadManager != null) {
+            downloadManager.enqueue(request);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        try{
+            switch (requestCode) {
+                case 1: {
+                    if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                        loadTrack();
+                    } else {
+                        //Toast.makeText(getApplicationContext(), "Please grant permission.", Toast.LENGTH_LONG).show();
+                        throw new Exception(getString(R.string.permission_denied));
+                    }
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            AlertDialog.Builder alertBuilder1 = new AlertDialog.Builder(PlayerActivity.this);
+            alertBuilder1.setMessage(getString(R.string.error))
+                .setTitle(e.getMessage())
+                    .create().show();
+            e.printStackTrace();
+        }
     }
 
     @Override

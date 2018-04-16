@@ -35,10 +35,10 @@ public class SettingFragment extends Fragment {
 
         String quality = sharedPreferences.getString("quality", defVal);
 
-        if(quality.equals("mp3_192")){
-            RadioButton button = root.findViewById(R.id.radioButtonMP3_192);
-            button.setChecked(true);
-        }
+        //if(quality.equals("mp3_192")){
+        //    RadioButton button = root.findViewById(R.id.radioButtonMP3_192);
+        //    button.setChecked(true);
+        //}
         if(quality.equals("aac_192")){
             RadioButton button = root.findViewById(R.id.radioButtonAAC_192);
             button.setChecked(true);
@@ -54,9 +54,10 @@ public class SettingFragment extends Fragment {
         radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup radioGroup, int i) {
-                if(i == R.id.radioButtonMP3_192){
-                    sharedPreferences.edit().putString("quality", "mp3_192").apply();
-                } else if (i == R.id.radioButtonAAC_192){
+                //if(i == R.id.radioButtonMP3_192){
+                //    sharedPreferences.edit().putString("quality", "mp3_192").apply();
+                //} else if (i == R.id.radioButtonAAC_192){
+                if (i == R.id.radioButtonAAC_192){
                     sharedPreferences.edit().putString("quality", "aac_192").apply();
                 } else if (i == R.id.radioButtonAAC_128){
                     sharedPreferences.edit().putString("quality", "aac_128").apply();

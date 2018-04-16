@@ -267,12 +267,12 @@ public class PlayerService extends Service {
                 mStateBuilder.setState(PlaybackStateCompat.STATE_PLAYING,
                         PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 1).build());
 
-        new Thread(new Runnable() {
+        /*new Thread(new Runnable() {
             @Override
             public void run() {
                 refreshNotificationAndForegroundStatus(PlaybackStateCompat.STATE_PLAYING);
             }
-        }).start();
+        }).start();*/
     }
 
     @Override
