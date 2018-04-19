@@ -54,28 +54,31 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
     public void onSkipToNext() {
         super.onSkipToNext();
 
-        if(service.simpleExoPlayer.getPlayWhenReady()){
-            service.simpleExoPlayer.stop();
-        }
-
-        if(service.simpleExoPlayer.getPlaybackState() == Player.STATE_BUFFERING){
+        if(!service.ready){
             return;
         }
 
-        if(service.getTrack() != null && !service.getTrack().isFinished()){
-            Manager.getInstance().sayAboutTrack(service.getTrack(),
-                    service.getMp().getCurrentPosition()/1000.0,
-                    service.getAuth(), Manager.skip);
-            service.queue.clear();
+        service.ready = false;
 
-            if(service.nextTrack != null)
-                service.queue.add(service.nextTrack);
-        }
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if(service.getTrack() != null && !service.getTrack().isFinished()){
+                    Manager.getInstance().sayAboutTrack(service.getTrack(),
+                            service.getMp().getCurrentPosition()/1000.0,
+                            service.getAuth(), Manager.skip);
+                    service.queue.clear();
 
-        service.prepare();
+                    if(service.nextTrack != null)
+                        service.queue.add(service.nextTrack);
+                }
 
-        service.skip();
-        onPlay();
+                service.prepare();
+
+                service.skip();
+                onPlay();
+            }
+        }).start();
     }
 
     @Override
@@ -109,6 +112,9 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
             if(!isPlayed)
                 service.play(isPlayed);
         }
+
+        if(!isPlayed)
+            return;
 
         service.refreshNotificationAndForegroundStatus(PlaybackStateCompat.STATE_PLAYING);
 

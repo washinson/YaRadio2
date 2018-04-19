@@ -15,6 +15,7 @@ import android.net.Uri;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
@@ -99,6 +100,8 @@ public class PlayerService extends Service {
     private AudioManager audioManager;
     private Browser.Auth auth;
     MediaSource mediaSource;
+    Handler handler;
+    boolean ready = true;
 
     SharedPreferences sharedPreferences;
 
@@ -251,17 +254,15 @@ public class PlayerService extends Service {
     }
 
     void notifyTrack(final Track track) {
-        Picasso.get().cancelRequest(target);
-        if(track.getCover().equals("https://music.yandex.ru/blocks/common/default.%%.png"))
-            Picasso.get().load(Utils.getCover(200, track.getCover())).into(target);
-        else
-            Picasso.get().load(Utils.getCover(600, track.getCover())).into(target);
+        handler.sendEmptyMessage(0);
+
         MediaMetadataCompat metadata = metadataBuilder
                 .putString(MediaMetadataCompat.METADATA_KEY_TITLE, track.getTitle())
                 .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
                         firstUpperCase(track.getStation().name))
                 .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, track.getArtist())
                 .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, track.getAlbum())
+                .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, null)
                 .build();
         mediaSession.setMetadata(metadata);
         mediaSession.setActive(true);
@@ -280,6 +281,19 @@ public class PlayerService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+
+        handler = new Handler() {
+            public void handleMessage(Message msg){
+                super.handleMessage(msg);
+
+                Picasso.get().cancelRequest(target);
+
+                if(track.getCover().equals("https://music.yandex.ru/blocks/common/default.%%.png"))
+                    Picasso.get().load(Utils.getCover(200, track.getCover())).into(target);
+                else
+                    Picasso.get().load(Utils.getCover(600, track.getCover())).into(target);
+            }
+        };
 
         auth = new Browser.Auth();
         auth.Init();
@@ -483,6 +497,9 @@ public class PlayerService extends Service {
 
         @Override
         public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
+            if(playbackState == STATE_READY){
+                ready = true;
+            }
             if(playbackState == STATE_ENDED){
                 long time = getMp().getCurrentPosition();
                 //simpleExoPlayer.stop(true);

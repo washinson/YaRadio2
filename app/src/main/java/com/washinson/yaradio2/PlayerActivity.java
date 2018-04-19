@@ -31,6 +31,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.animation.AnimationUtils;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -135,6 +136,7 @@ public class PlayerActivity extends AppCompatActivity {
         like.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                view.startAnimation(AnimationUtils.loadAnimation(PlayerActivity.this, R.anim.image_click));
                 if(playerService == null) return;
                 sendBroadcast(new Intent("like"));
             }
@@ -142,6 +144,7 @@ public class PlayerActivity extends AppCompatActivity {
         dislike.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                view.startAnimation(AnimationUtils.loadAnimation(PlayerActivity.this, R.anim.image_click));
                 if(playerService == null) return;
                 sendBroadcast(new Intent("dislike"));
             }
@@ -149,6 +152,7 @@ public class PlayerActivity extends AppCompatActivity {
         next.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                view.startAnimation(AnimationUtils.loadAnimation(PlayerActivity.this, R.anim.image_click));
                 if(mediaController == null) return;
                 mediaController.getTransportControls().skipToNext();
             }
@@ -156,6 +160,7 @@ public class PlayerActivity extends AppCompatActivity {
         play_pause.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                view.startAnimation(AnimationUtils.loadAnimation(PlayerActivity.this, R.anim.image_click));
                 if(mediaController == null) return;
                 if(mediaController.getPlaybackState() == null ||
                         mediaController.getPlaybackState().getState() == PlaybackStateCompat.STATE_PAUSED ||
