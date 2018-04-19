@@ -30,6 +30,7 @@ import java.io.OutputStreamWriter;
 import java.net.CookieStore;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -72,6 +73,7 @@ public class Browser extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_browser);
+        loadCookie();
         webView = findViewById(R.id.browser);
         webView.getSettings().setJavaScriptEnabled(true);
         webView.setWebViewClient(new ModWebView());
@@ -105,19 +107,6 @@ public class Browser extends AppCompatActivity {
                     }
                 }, BIND_AUTO_CREATE);
 
-                long eventtime = SystemClock.uptimeMillis();
-                Intent downIntent = new Intent(Intent.ACTION_MEDIA_BUTTON, null);
-                KeyEvent downEvent = new KeyEvent(eventtime, eventtime,
-                        KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_STOP, 0);
-                downIntent.putExtra(Intent.EXTRA_KEY_EVENT, downEvent);
-                sendOrderedBroadcast(downIntent, null);
-
-                Intent upIntent = new Intent(Intent.ACTION_MEDIA_BUTTON, null);
-                KeyEvent upEvent = new KeyEvent(eventtime, eventtime,
-                        KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_STOP, 0);
-                upIntent.putExtra(Intent.EXTRA_KEY_EVENT, upEvent);
-                sendOrderedBroadcast(upIntent, null);
-
                 Manager.init(Browser.this);
                 getSharedPreferences(MainActivity.TAG, Context.MODE_PRIVATE).edit().remove("library.jsx").apply();
                 updateCookie();
@@ -132,6 +121,19 @@ public class Browser extends AppCompatActivity {
         }
     }
 
+    public static void loadCookie() {
+        List<Cookie> cookies = Manager.getInstance().okHttpClient.cookieJar().loadForRequest(HttpUrl.parse("https://radio.yandex.ru"));
+
+        CookieManager cookieManager = CookieManager.getInstance();
+
+        if(cookies == null)
+            return;
+
+        for(Cookie cookie : cookies){
+            cookieManager.setCookie("https://radio.yandex.ru", cookie.toString());
+        }
+    }
+
     public static void updateCookie(){
         String cookies = CookieManager.getInstance().getCookie("https://radio.yandex.ru");
         String[] t = cookies.split("; ");
@@ -140,9 +142,6 @@ public class Browser extends AppCompatActivity {
             String[] res = pair.split("=", 2);
             Cookie cookie = new Cookie.Builder().domain(HttpUrl.parse("https://radio.yandex.ru").topPrivateDomain())
                     .name(res[0]).value(res[1]).expiresAt(Long.MAX_VALUE).build();
-
-            if(getCookieParam(cookie.name()) != null)
-                continue;
 
             cookieArrayList.add(cookie);
         }

@@ -276,8 +276,7 @@ class Manager {
         protected String doInBackground(Request... httpURLConnections) {
             Request connection = httpURLConnections[0];
             String res = null;
-            try (Response response = new OkHttpClient.Builder().cookieJar(cookieJar).build()
-                    .newCall(connection).execute()){
+            try (Response response = okHttpClient.newCall(connection).execute()){
                 if(response.body() == null) {
                     Log.d(PlayerService.TAG, "response body: null");
                     return null;
@@ -290,12 +289,12 @@ class Manager {
                 else
                     res = new String(q);
 
-            } catch (SocketTimeoutException e){
+            } catch (Exception e){
                 e.printStackTrace();
+                okHttpClient = new OkHttpClient.Builder()
+                        .cookieJar(cookieJar).build();
                 Log.d(PlayerService.TAG,"Connection Problem");
                 res = doInBackground(connection);
-            } catch (Exception e) {
-                e.printStackTrace();
             }
             return res;
         }

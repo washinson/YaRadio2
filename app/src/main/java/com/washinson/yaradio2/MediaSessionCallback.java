@@ -54,6 +54,10 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
     public void onSkipToNext() {
         super.onSkipToNext();
 
+        if(service.simpleExoPlayer.getPlayWhenReady()){
+            service.simpleExoPlayer.stop();
+        }
+
         if(service.simpleExoPlayer.getPlaybackState() == Player.STATE_BUFFERING){
             return;
         }

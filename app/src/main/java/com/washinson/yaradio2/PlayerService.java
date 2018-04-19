@@ -46,6 +46,9 @@ import com.google.android.exoplayer2.upstream.BandwidthMeter;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
+import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
+import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
+import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.upstream.cache.SimpleCache;
 import com.google.android.exoplayer2.util.Util;
 import com.squareup.picasso.Picasso;
@@ -170,10 +173,9 @@ public class PlayerService extends Service {
 
         Log.d(TAG, "track: " + downloadPath);
 
-        DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(this,
-                Manager.browser, null);
+        HttpDataSource.Factory dataSourceFactory = new DefaultHttpDataSourceFactory(Manager.browser);
 
-        mediaSource = new ExtractorMediaSource.Factory(dataSourceFactory)
+        ExtractorMediaSource mediaSource = new ExtractorMediaSource.Factory(dataSourceFactory)
                 .createMediaSource(android.net.Uri.parse(downloadPath));
 
         simpleExoPlayer.prepare(mediaSource);
@@ -198,7 +200,7 @@ public class PlayerService extends Service {
             queue.removeFirst();
             updateTracks();
             Log.d(TAG, "Track: " + track.toString());
-            Log.d(TAG, "Track: " + nextTrack.toString());
+            Log.d(TAG, "Next track: " + nextTrack.toString());
             track = nextTrack;
             nextTrack = queue.getFirst();
         }
