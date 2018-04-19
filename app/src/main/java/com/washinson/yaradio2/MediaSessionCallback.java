@@ -58,6 +58,10 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
             return;
         }
 
+        if(service.simpleExoPlayer.getPlayWhenReady()){
+            service.simpleExoPlayer.stop();
+        }
+
         service.ready = false;
 
         new Thread(new Runnable() {

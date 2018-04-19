@@ -53,6 +53,7 @@ import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.upstream.cache.SimpleCache;
 import com.google.android.exoplayer2.util.Util;
 import com.squareup.picasso.Picasso;
+import com.squareup.picasso.PicassoProvider;
 import com.squareup.picasso.Request;
 import com.squareup.picasso.Target;
 
