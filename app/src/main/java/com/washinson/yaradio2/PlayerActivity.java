@@ -323,7 +323,8 @@ public class PlayerActivity extends AppCompatActivity {
     }
 
     void updateScreen(MediaMetadataCompat metadataCompat){
-        if(metadataCompat == null || playerService == null || playerService.getTrack() == null)
+        if(metadataCompat == null || playerService == null || playerService.getTrack() == null || mediaController == null
+                || mediaController.getPlaybackState() == null)
             return;
 
         label.setText(metadataCompat.getText(MediaMetadataCompat.METADATA_KEY_ARTIST) +

@@ -106,10 +106,13 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
 
             mediaSession.setActive(true);
 
-            try {mContext.registerReceiver(like, new IntentFilter("like"));} catch (Exception ignore){}
-            try {mContext.registerReceiver(dislike, new IntentFilter("dislike"));} catch (Exception ignore){}
-            try {mContext.registerReceiver(
-                    becomingNoisyReceiver, new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY));} catch (Exception ignore){}
+            try {mContext.unregisterReceiver(like);}
+            catch (Exception e){mContext.registerReceiver(like, new IntentFilter("like"));}
+            try {mContext.unregisterReceiver(dislike);}
+            catch (Exception e){mContext.registerReceiver(dislike, new IntentFilter("dislike"));}
+            try {mContext.unregisterReceiver(becomingNoisyReceiver);}
+            catch (Exception e){mContext.registerReceiver(
+                    becomingNoisyReceiver, new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY));}
 
             service.play(isPlayed);
         } else {
