@@ -41,4 +41,5 @@
     <string name="already_yet">Already yet</string>
     <string name="permission_denied">Permission denied</string>
     <string name="updated">Updated</string>
+    <string name="always_fresh_apk">Fresh version</string>
 </resources>

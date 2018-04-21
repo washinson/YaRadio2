@@ -36,4 +36,5 @@
     <string name="already_yet">Уже есть</string>
     <string name="permission_denied">Нет прав</string>
     <string name="updated">Обновлено</string>
+    <string name="always_fresh_apk">Свежая версия</string>
 </resources>
