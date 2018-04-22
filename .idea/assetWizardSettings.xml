@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WizardSettings">
+    <option name="children">
+      <map>
+        <entry key="imageWizard">
+          <value>
+            <PersistentState>
+              <option name="children">
+                <map>
+                  <entry key="imageAssetPanel">
+                    <value>
+                      <PersistentState>
+                        <option name="children">
+                          <map>
+                            <entry key="notification">
+                              <value>
+                                <PersistentState>
+                                  <option name="children">
+                                    <map>
+                                      <entry key="clipartAsset">
+                                        <value>
+                                          <PersistentState>
+                                            <option name="values">
+                                              <map>
+                                                <entry key="url" value="jar:file:/D:/Programs/AStudio/plugins/android/lib/android.jar!/images/material_design_icons/image/ic_music_note_black_24dp.xml" />
+                                              </map>
+                                            </option>
+                                          </PersistentState>
+                                        </value>
+                                      </entry>
+                                    </map>
+                                  </option>
+                                  <option name="values">
+                                    <map>
+                                      <entry key="imageAsset" value="C:\apk\apk\ru.yandex.radio_1.59-159_minAPI16(nodpi)_apkmirror.com\res\mipmap-xxhdpi-v4\icon_launcher.png" />
+                                      <entry key="outputName" value="ic_music" />
+                                    </map>
+                                  </option>
+                                </PersistentState>
+                              </value>
+                            </entry>
+                          </map>
+                        </option>
+                        <option name="values">
+                          <map>
+                            <entry key="outputIconType" value="NOTIFICATION" />
+                          </map>
+                        </option>
+                      </PersistentState>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </PersistentState>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>

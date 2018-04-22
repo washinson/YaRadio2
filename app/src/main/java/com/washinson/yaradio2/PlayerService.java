@@ -1,6 +1,7 @@
 package com.washinson.yaradio2;
 
 import android.app.Notification;
+import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -8,11 +9,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -81,6 +84,7 @@ import static com.google.android.exoplayer2.Player.STATE_READY;
 
 public class PlayerService extends Service {
     private int NOTIFICATION_ID = 121;
+    private String channelID = "121";
     static public String TAG = "YaPlayer";
 
     static Station.Subtype subtype;
@@ -361,6 +365,16 @@ public class PlayerService extends Service {
             case PlaybackStateCompat.STATE_PLAYING: {
                 Notification notification = getNotification(playbackState);
                 if(notification == null) return;
+
+                NotificationManager mNotificationManager =
+                        (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && mNotificationManager != null) {
+                    NotificationChannel mChannel = new NotificationChannel(channelID, "Player",
+                            NotificationManager.IMPORTANCE_HIGH);
+                    mNotificationManager.createNotificationChannel(mChannel);
+                }
+
+
                 startForeground(NOTIFICATION_ID, notification);
                 break;
             }
@@ -383,7 +397,7 @@ public class PlayerService extends Service {
     }
 
     Notification getNotification(int playbackState) {
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, channelID);
 
         MediaControllerCompat controller = mediaSession.getController();
         MediaMetadataCompat mediaMetadata = controller.getMetadata();
@@ -397,7 +411,9 @@ public class PlayerService extends Service {
                 .setContentIntent(controller.getSessionActivity())
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setDeleteIntent(MediaButtonReceiver.buildMediaButtonPendingIntent(this,
-                        PlaybackStateCompat.ACTION_STOP));
+                        PlaybackStateCompat.ACTION_STOP))
+                .setChannelId(channelID)
+                .setSmallIcon(R.drawable.ic_music);
 
         // ...play/pause
         if (playbackState == PlaybackStateCompat.STATE_PLAYING)
@@ -451,7 +467,6 @@ public class PlayerService extends Service {
                 // кнопка на Android Wear будет отображаться, но не будет ничего делать
                 .setMediaSession(mediaSession.getSessionToken()));
 
-        builder.setSmallIcon(R.mipmap.ic_launcher);
         builder.setColor(ContextCompat.getColor(this, R.color.colorPrimaryDark));
 
         // Не отображать время создания уведомления. В нашем случае это не имеет смысла
