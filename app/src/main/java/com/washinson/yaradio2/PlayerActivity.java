@@ -244,44 +244,7 @@ public class PlayerActivity extends AppCompatActivity {
     }
 
     void loadTrack() throws Exception {
-        if(playerService == null || playerService.getTrack() == null ||
-                playerService.getTrack().getQualityInfo() == null ||
-                playerService.getTrack().getQualityInfo().qualities.isEmpty())
-            return;
-        String path = playerService.getTrack().getQualityInfo().byQuality("mp3_192");
-        Track track = playerService.getTrack();
-
-        File file = new File((Environment.getExternalStoragePublicDirectory(DIRECTORY_MUSIC).getAbsolutePath()
-                + "/YaRadio/" + track.getStation().name + "/" + track.getTitle() + " - " + track.getArtist() + ".mp3").replace(" ", "_"));
-        if(file.exists()) {
-            throw new Exception(getString(R.string.already_yet));
-        }
-
-        String src = path + "&format=json";
-
-        okhttp3.Request.Builder builder = new okhttp3.Request.Builder().get().url(src);
-        builder.addHeader("Host", "storage.mds.yandex.net");
-        Manager.getInstance().setDefaultHeaders(builder);
-
-        String result = Manager.getInstance().get(src, builder.build(), track);
-        JSONObject downloadInformation = new JSONObject(result);
-        PlayerService.DownloadInfo info = PlayerService.DownloadInfo.fromJSON(downloadInformation);
-        String downloadPath = info.getSrc();
-
-        DownloadManager downloadManager =
-                (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
-        DownloadManager.Request request = new DownloadManager.Request(android.net.Uri.parse(downloadPath));
-        request.setTitle(track.getTitle());
-        request.setDescription(track.getArtist());
-        request.setDestinationUri(android.net.Uri.fromFile(file));
-        request.allowScanningByMediaScanner();
-        request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-        request.setVisibleInDownloadsUi(true);
-        //request.setDestinationInExternalFilesDir(PlayerActivity.this,
-        //        DIRECTORY_MUSIC, file.getPath());
-        if (downloadManager != null) {
-            downloadManager.enqueue(request);
-        }
+        Mp3Downloader.getInstance().loadTrack();
     }
 
     @Override

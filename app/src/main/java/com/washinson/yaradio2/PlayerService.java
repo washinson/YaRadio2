@@ -334,6 +334,8 @@ public class PlayerService extends Service {
                 Intent.ACTION_MEDIA_BUTTON, null, getApplicationContext(), MediaButtonReceiver.class);
         mediaSession.setMediaButtonReceiver(
                 PendingIntent.getBroadcast(getApplicationContext(), 0, mediaButtonIntent, 0));
+
+        Mp3Downloader.init(this);
     }
 
     @Override
