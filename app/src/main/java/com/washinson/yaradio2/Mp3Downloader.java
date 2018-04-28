@@ -5,11 +5,13 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.media.MediaDescription;
 import android.media.MediaMetadata;
 import android.net.Uri;
 import android.os.Environment;
+import android.provider.MediaStore;
 
 import com.google.android.exoplayer2.extractor.MpegAudioHeader;
 import com.google.android.exoplayer2.extractor.ts.MpegAudioReader;
@@ -50,6 +52,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -89,9 +93,22 @@ public class Mp3Downloader {
 
         @Override
         public void run() {
-            MP3File mp3;
+            MP3File mp3 = null;
+
+            String filePath;
+
+            if (uri != null && "content".equals(uri.getScheme())) {
+                Cursor cursor = context.getContentResolver().query(uri, new String[] { MediaStore.MediaColumns.DATA }, null, null, null);
+                if(cursor == null) return;
+                cursor.moveToFirst();
+                filePath = cursor.getString(0);
+                cursor.close();
+            } else {
+                filePath = uri.getPath();
+            }
+
             try {
-                mp3 = (MP3File) AudioFileIO.read(new File(uri.getPath()));
+                mp3 = (MP3File) AudioFileIO.read(new File(filePath));
             } catch (CannotReadException | TagException | IOException | ReadOnlyFileException | InvalidAudioFrameException e) {
                 return;
             }
@@ -99,18 +116,14 @@ public class Mp3Downloader {
             ID3v24Tag tag = new ID3v24Tag();
 
             try {
-                tag.addField(FieldKey.ARTIST, track.getArtist());
+                tag.setField(FieldKey.ARTIST, track.getArtist());
                 tag.setField(FieldKey.TITLE, track.getTitle());
                 tag.setField(FieldKey.ALBUM, track.getAlbum());
             } catch (FieldDataInvalidException e) {
                 return;
             }
 
-            File tmp = new File(context.getExternalFilesDir(null) + "tmp.jpeg");
-            FileOutputStream fos;
             try {
-                fos = new FileOutputStream(tmp);
-
                 Bitmap bmp = Picasso.get().load(Utils.getCover(600, track.getCover())).get();
                 ByteArrayOutputStream stream = new ByteArrayOutputStream();
                 bmp.compress(Bitmap.CompressFormat.JPEG, 100, stream);
@@ -127,7 +140,6 @@ public class Mp3Downloader {
             } catch (IOException | FieldDataInvalidException e) {
                 e.printStackTrace();
             }
-            tmp.delete();
 
             mp3.setTag(tag);
 
